@@ -101,7 +101,7 @@ def change_player_state() -> Tuple[Response, int]:
 
     # Change the player state
     old_state = player.state
-    player.state = new_state
+    player.state = PlayerState(new_state)
 
     # Commit the changes
     try:

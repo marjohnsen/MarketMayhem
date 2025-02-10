@@ -45,7 +45,7 @@ class Player(db.Model):
     state = db.Column(db.Enum(PlayerState), nullable=False, default=PlayerState.ACTIVE)
     game_id = db.Column(db.Integer, db.ForeignKey("game.id"), nullable=False, index=True)
 
-    __table_args__ = db.UniqueConstraint("name", "game_id", name="uq_player_name_game")
+    __table_args__ = (db.UniqueConstraint("name", "game_id", name="uq_player_name_game"),)
 
     def __repr__(self):
         return f"<Player {self.name} (Key: {self.key}, State: {self.state})>"
