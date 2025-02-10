@@ -1,5 +1,5 @@
 from flask import Blueprint, Response, request, jsonify
-from app.models import db, Game, Player
+from app.models import db, Game, Player, GameState
 from typing import Dict, Any, Tuple
 import re
 
@@ -42,12 +42,12 @@ def join_game() -> Tuple[Response, int]:
         return jsonify({"error": "Player name can only contain between 3 and 20 alphanumeric characters"}), 400
 
     # Load and validate the game
-    game: Game = Game.query.filter_by(key=game_key).first()
+    game = Game.query.filter_by(key=game_key).first()
 
     if not game:
         return jsonify({"error": "Game not found"}), 400
 
-    if game.state != "lobby":
+    if game.state != GameState.LOBBY:
         return jsonify({"error": "Game has already started"}), 400
 
     # Load and validate the player

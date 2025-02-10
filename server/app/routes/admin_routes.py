@@ -11,7 +11,7 @@ def create_game() -> Tuple[Response, int]:
     Creates a new game and returns the game key.
 
     Request JSON must include:
-    - 'password': the admin password to authorize game creation.
+    - 'admin_key': the admin password to authorize game creation.
 
     Validations:
     - Ensures the 'admin_key' is provided and matches the admin password.
@@ -51,13 +51,36 @@ def create_game() -> Tuple[Response, int]:
     return jsonify(response_data), 201
 
 
-@admin_routes.route("/kick_player", methods=["POST"])
-def ban_player() -> Tuple[Response, int]:
+@admin_routes.route("/change_player_state", methods=["POST"])
+def change_player_state() -> Tuple[Response, int]:
+    """
+    Change a player's state in a game.
+
+    Request JSON must include:
+    - 'admin_key': the admin password to authorize the action.
+    - 'game_key': the key of the game the player is in.
+    - 'player_name': the name of the player whose state is being changed.
+    - 'new_state': the new state to assign to the player.
+
+    Validations:
+    - Ensures 'admin_key' matches the stored admin password.
+    - Ensures 'game_key' corresponds to an existing game.
+    - Ensures 'player_name' corresponds to a player in the specified game.
+    - Ensures 'new_state' is a valid PlayerState value.
+
+    On success:
+    - The player's state is updated.
+
+    Response:
+    - A success message confirming the player's state change.
+    """
+
     # Load and validate the request data
     data: Dict[str, Any] = request.get_json() or {}
     admin_key: str = data.get("admin_key", "")
     game_key: str = data.get("game_key", "")
     player_name: str = data.get("player_name", "")
+    new_state: str = data.get("new_state", "")
 
     # Check authorization
     if admin_key != current_app.config["ADMIN_KEY"]:
@@ -69,15 +92,23 @@ def ban_player() -> Tuple[Response, int]:
 
     # Load the player
     if not (player := db.session.query(Player).filter_by(name=player_name, game_id=game.id).first()):
-        return jsonify({"error": f"Player '{player_name}' not found"}), 400
+        return jsonify({"error": f"Player '{player_name}' not found in game '{game_key}'"}), 400
+
+    # Validate new state
+    valid_states = {state.value for state in PlayerState}
+    if new_state not in valid_states:
+        return jsonify({"error": f"Invalid state '{new_state}'. Must be one of {list(valid_states)}"}), 400
 
     # Change the player state
-    player.state = PlayerState.BANNED
+    old_state = player.state
+    player.state = new_state
 
     # Commit the changes
     try:
         db.session.commit()
-        return jsonify({"message": f"Player '{player_name}' has been banned from game '{game_key}'"}), 200
+        return jsonify(
+            {"message": f"Player '{player_name}' state changed from {old_state} to '{new_state}' in game '{game_key}'"}
+        ), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500

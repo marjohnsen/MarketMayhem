@@ -28,7 +28,8 @@ class Game(db.Model):
     players = db.relationship("Player", backref="game", lazy=True, cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<Game (Key: {self.key}, State: {self.state}, Players: {len(self.players)})>"
+        player_count = db.session.query(Player).filter_by(game_id=self.id).count()
+        return f"<Game (Key: {self.key}, State: {self.state}, Players: {player_count})>"
 
 
 class Player(db.Model):
