@@ -1,6 +1,7 @@
 from flask import Blueprint, Response, request, jsonify, current_app
-from app.models import db, Game, Player, PlayerState
+from app.models import Game, Player, PlayerState
 from typing import Dict, Any, Tuple
+from app.extensions import db
 
 admin_routes = Blueprint("admin_routes", __name__)
 

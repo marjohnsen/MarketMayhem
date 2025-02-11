@@ -1,6 +1,6 @@
 import uuid
 import enum
-from app.db import db
+from app.extensions import db
 
 
 class GameState(enum.Enum):

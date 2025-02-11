@@ -1,6 +1,7 @@
 from flask import Blueprint, Response, request, jsonify
-from app.models import db, Game, Player, GameState
+from app.models import Game, Player, GameState
 from typing import Dict, Any, Tuple
+from app.extensions import db
 import re
 
 lobby_routes = Blueprint("lobby_routes", __name__)
