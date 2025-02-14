@@ -1,7 +1,13 @@
 import numpy as np
 
 
-def get_next_price(last_price: float, volatility: float, buy_volume: int, sell_volume: int) -> float:
+class MarketSimulator:
+    def __init__(self, session) -> None:
+        self.session = session.L
+        self.max_volume = session.players.count()
+
+
+def get_next_price(last_price: float, volatility: float, buy_volume: int, sell_volume: int, max_volume: int) -> float:
     """
     Simulate the next log return and update the price based on user input data
     and random noise.
@@ -18,20 +24,24 @@ def get_next_price(last_price: float, volatility: float, buy_volume: int, sell_v
 
     Parameters:
     last_price (float): The last known price.
-    log_return_scale (float): The standard deviation of the log return.
+    volatility (float): The standard deviation of the log return.
     buy_volume (int): Total buy (long) volume.
     sell_volume (int): Total sell (short) volume.
 
     Returns:
     float: The next price.
     """
-    trading_volume = max(buy_volume + sell_volume, 1)
-    net_order_flow = buy_volume - sell_volume
+    trading_volume = np.maximum(buy_volume + sell_volume, 1)
+    trading_volume_ratio = trading_volume / max_volume
+    order_flow_ratio = (buy_volume - sell_volume) / trading_volume
 
-    mean_log_return = volatility * (net_order_flow / trading_volume)
-    std_log_return = volatility / np.sqrt(trading_volume)
+    short_term_drift = volatility * order_flow_ratio
+    short_term_volatility = volatility * (1 - trading_volume_ratio)
 
-    log_return = np.random.normal(mean_log_return, std_log_return)
+    long_term_drift
+    short_term_volatility
+
+    log_return = np.random.normal(short_term_drift, short_term_volatility)
     next_price = last_price * np.exp(log_return)
 
     return next_price
