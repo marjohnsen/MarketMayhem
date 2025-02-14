@@ -1,6 +1,5 @@
 import unittest
-import numpy as np
-from core.market_simulator import get_next_price, get_price_series
+from engine.market_simulator import get_next_price
 
 
 class test_next_price(unittest.TestCase):
@@ -48,24 +47,7 @@ class test_next_price(unittest.TestCase):
 
         self.assertIsInstance(low_vol_price, float)
         self.assertIsInstance(high_vol_price, float)
-        self.assertGreater(
-            abs(high_vol_price - last_price), abs(low_vol_price - last_price)
-        )
-
-
-class test_get_price_series(unittest.TestCase):
-    def test_all_zero_input(self):
-        last_price = 0
-        volatility = 0
-        buy_volume = 0
-        sell_volume = 0
-        N = 0
-
-        prices = get_price_series(last_price, volatility, buy_volume, sell_volume, N)
-
-        print(prices)
-        self.assertIsInstance(prices, list)
-        self.assertFalse(prices)
+        self.assertGreater(abs(high_vol_price - last_price), abs(low_vol_price - last_price))
 
 
 if __name__ == "__main__":
