@@ -1,7 +1,7 @@
 from flask import Flask
 from config import Config
 from app.routes import routes
-from app.extensions import db
+from app.db import db
 
 
 def create_app():

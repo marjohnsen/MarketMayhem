@@ -1,31 +1,26 @@
 import uuid
 import enum
-from app.extensions import db
+from app.db import db
 
 
-class GameState(enum.Enum):
-    PENDING = "pending"
-    ONGOING = "ongoing"
-    GAME_OVER = "game_over"
+class SessionState(enum.Enum):
+    LOBBY = "lobby"
+    PLAYING = "playing"
+    ENDED = "ended"
 
 
 class PlayerState(enum.Enum):
-    IN_LOBBY = "in_lobby"
-    IN_GAME = "in_game"
+    CONNECTED = "connected"
+    DISCONNECTED = "disconnected"
     BANNED = "banned"
 
 
-class ConnectionState(enum.Enum):
-    CONNECTED = "connected"
-    DISCONNECTED = "disconnected"
-
-
-class Game(db.Model):
-    __tablename__ = "games"
+class Session(db.Model):
+    __tablename__ = "sessions"
 
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(8), unique=True, nullable=False, default=lambda: uuid.uuid4().hex[:8])
-    state = db.Column(db.Enum(GameState), nullable=False, default=GameState.PENDING)
+    state = db.Column(db.Enum(SessionState), nullable=False, default=SessionState.LOBBY)
 
     players = db.relationship("Player", backref="game", lazy=True, cascade="all, delete-orphan")
 
@@ -34,9 +29,9 @@ class Player(db.Model):
     __tablename__ = "players"
 
     id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(8), unique=True, nullable=False, default=lambda: uuid.uuid4().hex[:8])
     name = db.Column(db.String(20), nullable=False)
-    state = db.Column(db.Enum(PlayerState), nullable=False, default=PlayerState.IN_LOBBY)
-    connection = db.Column(db.Enum(ConnectionState), nullable=False, default=ConnectionState.CONNECTED)
-    gameplay_id = db.Column(db.Integer, db.ForeignKey("games.id"), nullable=True, index=True)
+    state = db.Column(db.Enum(PlayerState), nullable=False, default=PlayerState.CONNECTED)
+    session_id = db.Column(db.Integer, db.ForeignKey("sessions.id"), nullable=True, index=True)
 
-    __table_args__ = (db.UniqueConstraint("name", "gameplay_id", name="uq_player_name_gameplay"),)
+    __table_args__ = (db.UniqueConstraint("name", "session_id", name="uq_player_name_gameplay"),)
