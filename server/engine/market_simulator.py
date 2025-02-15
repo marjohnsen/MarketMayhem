@@ -28,7 +28,7 @@ class MarketSimulator:
         trading_volume_ratio: float = trading_volume / self.MAX_VOLUME
         order_flow_ratio: float = order_flow / trading_volume
 
-        jitter: float = self.VOLATILITY / (2 + np.exp((trading_volume_ratio - 0.14) * 30))
+        jitter: float = self.VOLATILITY / (1 + np.exp((trading_volume_ratio - 0.14) * 30))
         surge: float = self.VOLATILITY * order_flow_ratio
 
         dispersion: float = self.dispersions[-1] * self.DECAY + jitter * (1 - self.DECAY)
