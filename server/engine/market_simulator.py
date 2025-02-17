@@ -1,12 +1,15 @@
 import numpy as np
 from typing import List
 
+# TODO:
+# Adjust jitter and surge to follow the average number of trades
+
 
 class MarketSimulator:
     def __init__(self, initial_price: float, volatility: float, max_volume: int) -> None:
-        self.VOLATILITY: float = volatility
-        self.DECAY: float = 0.9
+        self.DECAY: float = 0.7
         self.MAX_VOLUME: int = max_volume
+        self.VOLATILITY: float = volatility
 
         self.trading_volumes: List[int] = [0]
         self.order_flows: List[int] = [0]
@@ -26,10 +29,10 @@ class MarketSimulator:
         trading_volume: int = buy_volume + sell_volume or 1
         order_flow: int = buy_volume - sell_volume
         trading_volume_ratio: float = trading_volume / self.MAX_VOLUME
-        order_flow_ratio: float = order_flow / trading_volume
+        order_flow_ratio: float = order_flow / (self.MAX_VOLUME / 2)
 
-        jitter: float = self.VOLATILITY / (1 + np.exp((trading_volume_ratio - 0.14) * 30))
-        surge: float = self.VOLATILITY * order_flow_ratio
+        jitter: float = self.VOLATILITY * (1 - np.minimum(trading_volume_ratio / 0.01, 1))
+        surge: float = self.VOLATILITY * np.minimum(order_flow_ratio / 0.2, 1)
 
         dispersion: float = self.dispersions[-1] * self.DECAY + jitter * (1 - self.DECAY)
         sentiment: float = self.sentiments[-1] * self.DECAY + surge * (1 - self.DECAY)
@@ -55,9 +58,16 @@ class MarketSimulator:
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
-    simulator = MarketSimulator(100.0, 0.001, 100)
-    for _ in range(1000):
-        simulator.get_next_price(0, 0)
+    # Simulate trades from the poisson distribution
+    buy = np.random.poisson(lam=2, size=100)
+    sell = np.random.poisson(lam=2, size=100)
+    trades = list(zip(buy, sell))
+
+    # Simulate price series
+    simulator = MarketSimulator(100.0, 0.1, 1000)
+
+    for trade in trades:
+        simulator.get_next_price(trade[0], trade[1])
 
     # Subplot of all series in class:
     fig, axs = plt.subplots(5, 2, figsize=(10, 15))
@@ -77,7 +87,7 @@ if __name__ == "__main__":
     axs[3, 0].set_title("Dispersions")
     axs[3, 1].plot(simulator.sentiments[1:])
     axs[3, 1].set_title("Sentiments")
-    axs[4, 0].plot(simulator.log_returns[1:])
+    axs[4, 0].hist(simulator.log_returns[1:], bins=20, alpha=0.5)
     axs[4, 0].set_title("Log Returns")
     axs[4, 1].plot(simulator.prices[1:])
     axs[4, 1].set_title("Prices")
