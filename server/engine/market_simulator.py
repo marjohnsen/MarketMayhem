@@ -1,9 +1,6 @@
 import numpy as np
 from typing import List
 
-# TODO:
-# Adjust jitter and surge to follow the average number of trades
-
 
 class MarketSimulator:
     def __init__(self, initial_price: float, volatility: float, max_volume: int) -> None:
@@ -31,7 +28,7 @@ class MarketSimulator:
         trading_volume_ratio: float = trading_volume / self.MAX_VOLUME
         order_flow_ratio: float = order_flow / (self.MAX_VOLUME / 2)
 
-        jitter: float = self.VOLATILITY * (1 - np.minimum(trading_volume_ratio / 0.01, 1))
+        jitter: float = self.VOLATILITY * (1 - np.minimum(trading_volume_ratio / 0.1, 1))
         surge: float = self.VOLATILITY * np.minimum(order_flow_ratio / 0.2, 1)
 
         dispersion: float = self.dispersions[-1] * self.DECAY + jitter * (1 - self.DECAY)
@@ -58,13 +55,20 @@ class MarketSimulator:
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
-    # Simulate trades from the poisson distribution
-    buy = np.random.poisson(lam=2, size=100)
-    sell = np.random.poisson(lam=2, size=100)
-    trades = list(zip(buy, sell))
+    trades = []
+    prev_trades = 0
 
-    # Simulate price series
-    simulator = MarketSimulator(100.0, 0.1, 1000)
+    # Simulate trades
+    for _ in range(100):
+        lam = 2 + 0.3 * prev_trades
+        n_trades = np.random.poisson(lam)
+        n_buys = np.random.binomial(n_trades, 0.5)
+        n_sells = n_trades - n_buys
+        trades.append([n_buys, n_sells])
+        prev_trades = n_trades
+
+    # Simulate market
+    simulator = MarketSimulator(100.0, 0.001, 200)
 
     for trade in trades:
         simulator.get_next_price(trade[0], trade[1])
