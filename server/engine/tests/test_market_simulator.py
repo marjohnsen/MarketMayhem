@@ -1,53 +1,85 @@
 import unittest
-from engine.market_simulator import get_next_price
+from unittest.mock import patch
+from engine.market_simulator import MarketSimulator
 
 
-class test_next_price(unittest.TestCase):
-    def test_all_zero_input(self):
-        last_price = 0
-        volatility = 0
-        buy_volume = 0
-        sell_volume = 0
-        next_price = get_next_price(last_price, volatility, buy_volume, sell_volume)
-        self.assertIsInstance(next_price, float)
-        self.assertEqual(next_price, last_price)
+class TestMarketSimulator(unittest.TestCase):
+    def setUp(self):
+        self.sim = MarketSimulator(epochs=10, initial_price=100.0, volatility=0.01, decay=0.7)
 
-    def test_high_pos_order_flow(self):
-        last_price = 1
-        volatility = 0.01
-        buy_volume = 100
-        sell_volume = 0
+    @patch("numpy.random.normal")
+    def test(self, mock_normal):
+        mock_normal.side_effect = lambda mean, std: mean
 
-        next_price = get_next_price(last_price, volatility, buy_volume, sell_volume)
+        # Verify parameters:
+        self.assertEqual(self.sim.epoch, 0)
+        self.assertEqual(self.sim.epochs, 10)
+        self.assertEqual(self.sim.price[0], 100.0)
+        self.assertEqual(self.sim.volatility, 0.01)
+        self.assertEqual(self.sim.decay, 0.7)
+        # Verify all arrays are initialized to zero.
+        self.assertEqual(self.sim.trading_volume[0], 0)
+        self.assertEqual(self.sim.order_flow[0], 0)
+        self.assertEqual(self.sim.jitter[0], 0)
+        self.assertEqual(self.sim.surge[0], 0)
+        self.assertEqual(self.sim.dispersion[0], 0)
+        self.assertEqual(self.sim.sentiment[0], 0)
+        self.assertEqual(self.sim.log_return[0], 0)
 
-        self.assertIsInstance(next_price, float)
-        self.assertGreater(next_price, last_price)
+        # Zero volume:
+        self.sim.get_next_price(buy_volume=0, sell_volume=0)
+        self.assertEqual(self.sim.epoch, 1)
+        self.assertEqual(self.sim.trading_volume[1], 1)
+        self.assertEqual(self.sim.order_flow[1], 0)
+        self.assertEqual(self.sim.jitter[1], self.sim.volatility)
+        self.assertEqual(self.sim.surge[1], 0)
+        self.assertEqual(self.sim.dispersion[1], self.sim.volatility * (1 - self.sim.decay))
+        self.assertEqual(self.sim.sentiment[1], 0)
+        self.assertEqual(self.sim.price[1], self.sim.price[0])
 
-    def test_high_neg_order_flow(self):
-        last_price = 1
-        volatility = 0.01
-        buy_volume = 0
-        sell_volume = 100
+        # Jitter == volatility until 3 epochs with trading volume > 0:
+        for i in range(2, 6):
+            self.sim.get_next_price(buy_volume=10, sell_volume=10)
+            self.assertEqual(self.sim.epoch, i)
+            (self.assertEqual if i <= 4 else self.assertLess)(self.sim.jitter[i], self.sim.volatility)
 
-        next_price = get_next_price(last_price, volatility, buy_volume, sell_volume)
+        # Positive order flow:
+        self.sim.get_next_price(buy_volume=1, sell_volume=0)
+        self.assertEqual(self.sim.epoch, 6)
+        self.assertEqual(self.sim.order_flow[6], 1)
+        self.assertEqual(self.sim.trading_volume[6], 1)
+        self.assertGreater(self.sim.price[6], self.sim.price[5])
 
-        self.assertIsInstance(next_price, float)
-        self.assertLess(next_price, last_price)
+        # Negative order flow:
+        self.sim.get_next_price(buy_volume=0, sell_volume=1)
+        self.assertEqual(self.sim.epoch, 7)
+        self.assertEqual(self.sim.order_flow[7], -1)
+        self.assertEqual(self.sim.trading_volume[7], 1)
+        self.assertLess(self.sim.price[7], self.sim.price[6])
 
-    def test_high_vs_low_volatility(self):
-        last_price = 1
-        volatility = 1
-        low_buy = 0
-        low_sell = 0
-        high_buy = 1000
-        high_sell = 1000
+        # Very high even volume
+        self.sim.get_next_price(buy_volume=1000, sell_volume=1000)
+        self.assertEqual(self.sim.epoch, 8)
+        self.assertEqual(self.sim.order_flow[8], 0)
+        self.assertEqual(self.sim.trading_volume[8], 2000)
+        self.assertAlmostEqual(self.sim.jitter[8], 0)
+        self.assertAlmostEqual(self.sim.surge[8], 0)
 
-        low_vol_price = get_next_price(last_price, volatility, high_buy, high_sell)
-        high_vol_price = get_next_price(last_price, volatility, low_buy, low_sell)
+        # Very high uneven volume
+        self.sim.get_next_price(buy_volume=1000, sell_volume=0)
+        self.assertEqual(self.sim.epoch, 9)
+        self.assertEqual(self.sim.order_flow[9], 1000)
+        self.assertEqual(self.sim.trading_volume[9], 1000)
+        self.assertAlmostEqual(self.sim.jitter[9], 0)
+        self.assertAlmostEqual(self.sim.surge[9], self.sim.volatility)
 
-        self.assertIsInstance(low_vol_price, float)
-        self.assertIsInstance(high_vol_price, float)
-        self.assertGreater(abs(high_vol_price - last_price), abs(low_vol_price - last_price))
+        # Check long term memory:
+        self.assertGreater(self.sim.dispersion[9], 0)
+        self.assertGreater(self.sim.sentiment[9], 0)
+
+        # Check end of simulation:
+        with self.assertRaises(IndexError):
+            self.sim.get_next_price(buy_volume=1000, sell_volume=0)
 
 
 if __name__ == "__main__":

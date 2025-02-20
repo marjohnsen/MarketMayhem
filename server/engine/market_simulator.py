@@ -10,8 +10,6 @@ class MarketSimulator:
 
         self.trading_volume = np.zeros(epochs, dtype=float)
         self.order_flow = np.zeros(epochs, dtype=float)
-        self.trading_volume_ratio = np.zeros(epochs, dtype=float)
-        self.order_flow_ratio = np.zeros(epochs, dtype=float)
         self.jitter = np.zeros(epochs, dtype=float)
         self.surge = np.zeros(epochs, dtype=float)
         self.dispersion = np.zeros(epochs, dtype=float)
@@ -27,7 +25,7 @@ class MarketSimulator:
 
         current_tv = self.trading_volume[: self.epoch]
         nonzero_tv = current_tv[current_tv != 0]
-        volume_percentile = np.percentile(nonzero_tv, 90) if nonzero_tv.size > 0 else 1.0
+        volume_percentile = np.percentile(nonzero_tv, 90) if nonzero_tv.size >= 3 else np.inf
 
         trading_volume_ratio = np.minimum(trading_volume / volume_percentile, 1)
         order_flow_ratio = np.clip(order_flow / volume_percentile, -1, 1)
@@ -44,8 +42,6 @@ class MarketSimulator:
         self.epoch = self.epoch + 1
         self.trading_volume[self.epoch] = trading_volume
         self.order_flow[self.epoch] = order_flow
-        self.trading_volume_ratio[self.epoch] = trading_volume_ratio
-        self.order_flow_ratio[self.epoch] = order_flow_ratio
         self.jitter[self.epoch] = jitter
         self.surge[self.epoch] = surge
         self.dispersion[self.epoch] = dispersion
@@ -59,13 +55,14 @@ if __name__ == "__main__":
 
     # Simulate trades
     trades = []
-    prev_trades = 0
-    for _ in range(99):
-        lam = 2 + 0.3 * prev_trades
-        n_trades = np.random.poisson(lam)
-        n_buys = np.random.binomial(n_trades, 0.5)
+    buy_pattern = [0.25] * 8 + [0.5] * 8 + [0.75] * 8
+    trade_pattern = [1, 3, 5, 7, 9, 7, 5, 3]
+
+    for i in range(99):
+        n_trades = trade_pattern[i % len(trade_pattern)]
+        buy_fraction = buy_pattern[i % len(buy_pattern)]
+        n_buys = int(round(n_trades * buy_fraction))
         trades.append((n_buys, n_trades - n_buys))
-        prev_trades = n_trades
 
     # Simulate market
     simulator = MarketSimulator(100)
@@ -77,8 +74,6 @@ if __name__ == "__main__":
     plots = [
         (simulator.trading_volume[1:], "Trading Volumes", "plot"),
         (simulator.order_flow[1:], "Order Flows", "plot"),
-        (simulator.trading_volume_ratio[1:], "Trading Volume Ratios", "plot"),
-        (simulator.order_flow_ratio[1:], "Order Flow Ratios", "plot"),
         (simulator.jitter[1:], "Jitters", "plot"),
         (simulator.surge[1:], "Surges", "plot"),
         (simulator.dispersion[1:], "Dispersions", "plot"),
@@ -94,6 +89,5 @@ if __name__ == "__main__":
             ax.plot(data)
         ax.set_title(title)
 
-    print("total variance of log returns:", np.std(simulator.log_return[1:]))
     plt.tight_layout()
     plt.show()
