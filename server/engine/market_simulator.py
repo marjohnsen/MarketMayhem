@@ -1,99 +1,99 @@
 import numpy as np
-from typing import List
 
 
 class MarketSimulator:
-    def __init__(self, initial_price: float, volatility: float, max_volume: int) -> None:
-        self.DECAY: float = 0.7
-        self.MAX_VOLUME: int = max_volume
-        self.VOLATILITY: float = volatility
+    def __init__(self, epochs: int, initial_price: float = 100.0, volatility: float = 0.01, decay: float = 0.7) -> None:
+        self.epochs = epochs
+        self.volatility = volatility
+        self.decay = decay
+        self.epoch = 0
 
-        self.trading_volumes: List[int] = [0]
-        self.order_flows: List[int] = [0]
-        self.trading_volume_ratios: List[float] = [0.0]
-        self.order_flow_ratios: List[float] = [0.0]
+        self.trading_volume = np.zeros(epochs, dtype=float)
+        self.order_flow = np.zeros(epochs, dtype=float)
+        self.trading_volume_ratio = np.zeros(epochs, dtype=float)
+        self.order_flow_ratio = np.zeros(epochs, dtype=float)
+        self.jitter = np.zeros(epochs, dtype=float)
+        self.surge = np.zeros(epochs, dtype=float)
+        self.dispersion = np.zeros(epochs, dtype=float)
+        self.sentiment = np.zeros(epochs, dtype=float)
+        self.log_return = np.zeros(epochs, dtype=float)
+        self.price = np.zeros(epochs, dtype=float)
 
-        self.jitters: List[float] = [0.0]
-        self.surges: List[float] = [0.0]
-
-        self.dispersions: List[float] = [0.0]
-        self.sentiments: List[float] = [0.0]
-
-        self.log_returns: List[float] = [0.0]
-        self.prices: List[float] = [initial_price]
+        self.price[0] = initial_price
 
     def get_next_price(self, buy_volume: int, sell_volume: int) -> None:
-        trading_volume: int = buy_volume + sell_volume or 1
-        order_flow: int = buy_volume - sell_volume
-        trading_volume_ratio: float = trading_volume / self.MAX_VOLUME
-        order_flow_ratio: float = order_flow / (self.MAX_VOLUME / 2)
+        trading_volume = buy_volume + sell_volume or 1
+        order_flow = buy_volume - sell_volume
 
-        jitter: float = self.VOLATILITY * (1 - np.minimum(trading_volume_ratio / 0.1, 1))
-        surge: float = self.VOLATILITY * np.minimum(order_flow_ratio / 0.2, 1)
+        current_tv = self.trading_volume[: self.epoch]
+        nonzero_tv = current_tv[current_tv != 0]
+        volume_percentile = np.percentile(nonzero_tv, 90) if nonzero_tv.size > 0 else 1.0
 
-        dispersion: float = self.dispersions[-1] * self.DECAY + jitter * (1 - self.DECAY)
-        sentiment: float = self.sentiments[-1] * self.DECAY + surge * (1 - self.DECAY)
+        trading_volume_ratio = np.minimum(trading_volume / volume_percentile, 1)
+        order_flow_ratio = np.clip(order_flow / volume_percentile, -1, 1)
 
-        log_return: float = np.random.normal(surge + sentiment, jitter + dispersion)
-        next_price: float = self.prices[-1] * np.exp(log_return)
+        jitter = self.volatility * (1 - trading_volume_ratio)
+        surge = self.volatility * order_flow_ratio
 
-        self.trading_volumes.append(trading_volume)
-        self.order_flows.append(order_flow)
-        self.trading_volume_ratios.append(trading_volume_ratio)
-        self.order_flow_ratios.append(order_flow_ratio)
+        dispersion = self.dispersion[self.epoch] * self.decay + jitter * (1 - self.decay)
+        sentiment = self.sentiment[self.epoch] * self.decay + surge * (1 - self.decay)
 
-        self.jitters.append(jitter)
-        self.surges.append(surge)
+        log_return = np.random.normal(surge + sentiment, jitter + dispersion)
+        price = self.price[self.epoch] * np.exp(log_return)
 
-        self.dispersions.append(dispersion)
-        self.sentiments.append(sentiment)
-
-        self.log_returns.append(log_return)
-        self.prices.append(next_price)
+        self.epoch = self.epoch + 1
+        self.trading_volume[self.epoch] = trading_volume
+        self.order_flow[self.epoch] = order_flow
+        self.trading_volume_ratio[self.epoch] = trading_volume_ratio
+        self.order_flow_ratio[self.epoch] = order_flow_ratio
+        self.jitter[self.epoch] = jitter
+        self.surge[self.epoch] = surge
+        self.dispersion[self.epoch] = dispersion
+        self.sentiment[self.epoch] = sentiment
+        self.log_return[self.epoch] = log_return
+        self.price[self.epoch] = price
 
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
+    # Simulate trades
     trades = []
     prev_trades = 0
-
-    # Simulate trades
-    for _ in range(100):
+    for _ in range(99):
         lam = 2 + 0.3 * prev_trades
         n_trades = np.random.poisson(lam)
         n_buys = np.random.binomial(n_trades, 0.5)
-        n_sells = n_trades - n_buys
-        trades.append([n_buys, n_sells])
+        trades.append((n_buys, n_trades - n_buys))
         prev_trades = n_trades
 
     # Simulate market
-    simulator = MarketSimulator(100.0, 0.001, 200)
+    simulator = MarketSimulator(100)
+    for n_buys, n_sells in trades:
+        simulator.get_next_price(n_buys, n_sells)
 
-    for trade in trades:
-        simulator.get_next_price(trade[0], trade[1])
-
-    # Subplot of all series in class:
+    # Create subplots
     fig, axs = plt.subplots(5, 2, figsize=(10, 15))
-    axs[0, 0].plot(simulator.trading_volumes[1:])
-    axs[0, 0].set_title("Trading Volumes")
-    axs[0, 1].plot(simulator.order_flows[1:])
-    axs[0, 1].set_title("Order Flows")
-    axs[1, 0].plot(simulator.trading_volume_ratios[1:])
-    axs[1, 0].set_title("Trading Volume Ratios")
-    axs[1, 1].plot(simulator.order_flow_ratios[1:])
-    axs[1, 1].set_title("Order Flow Ratios")
-    axs[2, 0].plot(simulator.jitters[1:])
-    axs[2, 0].set_title("Jitters")
-    axs[2, 1].plot(simulator.surges[1:])
-    axs[2, 1].set_title("Surges")
-    axs[3, 0].plot(simulator.dispersions[1:])
-    axs[3, 0].set_title("Dispersions")
-    axs[3, 1].plot(simulator.sentiments[1:])
-    axs[3, 1].set_title("Sentiments")
-    axs[4, 0].hist(simulator.log_returns[1:], bins=20, alpha=0.5)
-    axs[4, 0].set_title("Log Returns")
-    axs[4, 1].plot(simulator.prices[1:])
-    axs[4, 1].set_title("Prices")
-    print(f"total variance of log returns: {np.std(simulator.log_returns[1:])}")
+    plots = [
+        (simulator.trading_volume[1:], "Trading Volumes", "plot"),
+        (simulator.order_flow[1:], "Order Flows", "plot"),
+        (simulator.trading_volume_ratio[1:], "Trading Volume Ratios", "plot"),
+        (simulator.order_flow_ratio[1:], "Order Flow Ratios", "plot"),
+        (simulator.jitter[1:], "Jitters", "plot"),
+        (simulator.surge[1:], "Surges", "plot"),
+        (simulator.dispersion[1:], "Dispersions", "plot"),
+        (simulator.sentiment[1:], "Sentiments", "plot"),
+        (simulator.log_return[1:], "Log Returns", "hist"),
+        (simulator.price[1:], "Prices", "plot"),
+    ]
+
+    for ax, (data, title, plot_type) in zip(axs.flat, plots):
+        if plot_type == "hist":
+            ax.hist(data, bins=20, alpha=0.5)
+        else:
+            ax.plot(data)
+        ax.set_title(title)
+
+    print("total variance of log returns:", np.std(simulator.log_return[1:]))
+    plt.tight_layout()
     plt.show()
