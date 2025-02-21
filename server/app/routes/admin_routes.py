@@ -1,6 +1,6 @@
 from flask import Blueprint, Response, request, jsonify, current_app
 from app.models import Session, Player, PlayerState
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Union
 from app.db import db
 
 admin_routes = Blueprint("admin_routes", __name__)
@@ -68,11 +68,12 @@ def start_game() -> Tuple[Response, int]:
     if not (session := db.session.query(Session).filter_by(key=session_key).first()):
         return jsonify({"error": f"Session with key '{session_key}' not found"}), 400
 
-    # Check if there are enough players to start the game (minimum 1 player with connected state)
+    # Check if there are enough players to start the game
     if not any(player.state == PlayerState.CONNECTED for player in session.players):
         return jsonify({"error": "Cannot start the with no players."}), 400
 
     # Add game instace
+    
 
      try:
          db.session.commit()
@@ -112,7 +113,7 @@ def change_player_state() -> Tuple[Response, int]:
     admin_key: str = data.get("admin_key", "")
     session_key: str = data.get("session_key", "")
     player_name: str = data.get("player_name", "")
-    new_state: str = data.get("new_state", "")
+    new_state: Union[str, PlayerState] = data.get("new_state", "")
 
     # Check authorization
     if admin_key != current_app.config["ADMIN_KEY"]:
