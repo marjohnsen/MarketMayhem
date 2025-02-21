@@ -4,24 +4,41 @@ from datetime import datetime
 
 class MarketSimulator:
     def __init__(self, epochs: int, initial_price: float = 100.0, volatility: float = 0.01, decay: float = 0.7) -> None:
+        # Parameters
         self.epochs = epochs
         self.volatility = volatility
         self.decay = decay
         self.epoch = 0
 
-        self.trading_volume = np.zeros(epochs, dtype=float)
-        self.order_flow = np.zeros(epochs, dtype=float)
-        self.jitter = np.zeros(epochs, dtype=float)
-        self.surge = np.zeros(epochs, dtype=float)
-        self.dispersion = np.zeros(epochs, dtype=float)
-        self.sentiment = np.zeros(epochs, dtype=float)
-        self.log_return = np.zeros(epochs, dtype=float)
-        self.price = np.zeros(epochs, dtype=float)
-        self.datetime = np.array([""] * epochs, dtype=object)
+        # Simulation states
+        self.trading_volume = np.empty(epochs + 1, dtype=float)
+        self.order_flow = np.empty(epochs + 1, dtype=float)
+        self.jitter = np.empty(epochs + 1, dtype=float)
+        self.surge = np.empty(epochs + 1, dtype=float)
+        self.dispersion = np.empty(epochs + 1, dtype=float)
+        self.sentiment = np.empty(epochs + 1, dtype=float)
 
+        # Simulation output
+        self.log_return = np.empty(epochs + 1, dtype=float)
+        self.price = np.empty(epochs + 1, dtype=float)
+        self.datetime = np.empty(epochs + 1, dtype=object)
+
+        # Initialize
+        self.trading_volume[0] = 0.0
+        self.order_flow[0] = 0.0
+        self.jitter[0] = 0.0
+        self.surge[0] = 0.0
+        self.dispersion[0] = 0.0
+        self.sentiment[0] = 0.0
+        self.log_return[0] = 0.0
         self.price[0] = initial_price
+        self.get_next_price = self._initialize_simulator
 
-    def get_next_price(self, buy_volume: int, sell_volume: int) -> None:
+    def _initialize_simulator(self, buy_volume: int, sell_volume: int) -> None:
+        self.datetime[0] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.get_next_price = self._next_price
+
+    def _next_price(self, buy_volume: int, sell_volume: int) -> None:
         # calculate market metrics
         trading_volume = buy_volume + sell_volume or 1
         order_flow = buy_volume - sell_volume
@@ -37,7 +54,7 @@ class MarketSimulator:
 
         # calculate short term market effects
         jitter = self.volatility * (1 - trading_volume_ratio)
-        surge = self.volatility * order_flow_ratio
+        surge = 0.5 * self.volatility * order_flow_ratio
 
         # calculate long term market effects
         dispersion = self.dispersion[self.epoch] * self.decay + jitter * (1 - self.decay)
@@ -69,7 +86,7 @@ if __name__ == "__main__":
     buy_pattern = [0.25] * 16 + [0.5] * 16 + [0.75] * 16
     trade_pattern = [1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2]
 
-    for i in range(n_simulations - 1):
+    for i in range(n_simulations + 1):
         n_trades = trade_pattern[i % len(trade_pattern)]
         buy_fraction = buy_pattern[i % len(buy_pattern)]
         n_buys = int(round(n_trades * buy_fraction))
