@@ -2,13 +2,12 @@ import numpy as np
 from datetime import datetime
 
 
-class MarketSimulator:
+class GaussianMarketSimulator:
     def __init__(self, epochs: int, initial_price: float = 100.0, volatility: float = 0.01, decay: float = 0.7) -> None:
         # Parameters
         self.epochs = epochs
         self.volatility = volatility
         self.decay = decay
-        self.epoch = 0
 
         # Simulation states
         self.trading_volume = np.empty(epochs + 1, dtype=float)
@@ -24,6 +23,7 @@ class MarketSimulator:
         self.datetime = np.empty(epochs + 1, dtype=object)
 
         # Initialize
+        self.epoch = 0
         self.trading_volume[0] = 0.0
         self.order_flow[0] = 0.0
         self.jitter[0] = 0.0
@@ -32,13 +32,13 @@ class MarketSimulator:
         self.sentiment[0] = 0.0
         self.log_return[0] = 0.0
         self.price[0] = initial_price
-        self.get_next_price = self._initialize_simulator
+        self.get_next_price = self._initiate_market
 
-    def _initialize_simulator(self, buy_volume: int, sell_volume: int) -> None:
+    def _initiate_market(self, buy_volume: int, sell_volume: int) -> None:
         self.datetime[0] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.get_next_price = self._next_price
+        self.update_market = self._update_market
 
-    def _next_price(self, buy_volume: int, sell_volume: int) -> None:
+    def _update_market(self, buy_volume: int, sell_volume: int) -> None:
         # calculate market metrics
         trading_volume = buy_volume + sell_volume or 1
         order_flow = buy_volume - sell_volume
