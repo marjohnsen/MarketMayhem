@@ -1,6 +1,8 @@
-from typing import Dict, Union
-import numpy as np
 from datetime import datetime
+from typing import Dict, Union
+
+import numpy as np
+from interfaces import MarketSimulatorInterface
 
 
 def update_market() -> None:
@@ -11,7 +13,7 @@ def update_market() -> None:
         sell_volume -= position if position < 0 else 0
 
 
-class GaussianMarketSimulator:
+class GaussianMarketSimulator(MarketSimulatorInterface):
     def __init__(self, epochs: int, volatility: float = 0.01, decay: float = 0.7) -> None:
         # Parameters
         self.epochs = epochs
@@ -39,7 +41,7 @@ class GaussianMarketSimulator:
         self.dispersion[0] = 0.0
         self.sentiment[0] = 0.0
         self.log_return[0] = 0.0
-        self.get_next_price = self._initiate_market
+        self.update_maret = self._initiate_market
 
     def reference_players(self, players: Dict[str, Dict[str, Union[np.ndarray, int]]]) -> None:
         self.players = players

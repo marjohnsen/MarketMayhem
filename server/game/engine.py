@@ -1,6 +1,7 @@
-from interfaces import MarketSimulatorInterface
-from typing import Any, Tuple
+from typing import Any
+
 import numpy as np
+from interfaces import MarketSimulatorInterface
 
 # TODO: Change the market protocol to take the whole player dict
 # TODO: This will increase the flexibility of the market simulator
