@@ -1,4 +1,4 @@
-from protocols import MarketSimulatorProtocol
+from interfaces import MarketSimulatorInterface
 from typing import Any, Tuple
 import numpy as np
 
@@ -11,29 +11,18 @@ import numpy as np
 #           can then use a numpy array to store the references to the positions and leverage.
 
 
-class GameEngine:
-    def __init__(self, simulator: MarketSimulatorProtocol, duration: int) -> None:
-        if not isinstance(simulator, MarketSimulatorProtocol):
-            raise TypeError(f"simulator must implement MarketSimulatorProtocol, got {type(simulator)}")
-        self.sim: MarketSimulatorProtocol = simulator
-        self.players: dict[str, dict[str, Any]] = {}
+class GameEngine(MarketSimulatorInterface):
+    def __init__(self, simulator: MarketSimulatorInterface, duration: int) -> None:
         self.duration: int = duration
+        self.players: dict[str, dict[str, Any]] = {}
+        self.sim: MarketSimulatorInterface = simulator
+        self.sim.reference_players(self.players)
 
     def add_player(self, player_key: str) -> None:
         self.players[player_key] = {
             "positions": np.full(self.duration + 1, np.nan, dtype=float),
             "leverage": 0,
         }
-
-    def update_market(self) -> Tuple[float, float]:
-        buy_volume, sell_volume = 0, 0
-        for player in self.players.values():
-            position = player["positions"][self.sim.epoch]
-            buy_volume += position if position > 0 else 0
-            sell_volume -= position if position < 0 else 0
-
-        self.sim.update_market(buy_volume, sell_volume)
-        return self.sim.price[self.sim.epoch], self.sim.log_return[self.sim.epoch]
 
     def trade(self, player_key: str, position: int) -> None:
         self.players[player_key]["leverage"] += position
@@ -43,7 +32,7 @@ class GameEngine:
 if __name__ == "__main__":
     from gaussian_market_simulator import GaussianMarketSimulator
 
-    simulator = GaussianMarketSimulator(epochs=10, initial_price=100, volatility=0.1, decay=0.01)
+    simulator = GaussianMarketSimulator(epochs=10, volatility=0.1, decay=0.01)
     engine = GameEngine(simulator, 10)
 
     engine.add_player("player1")

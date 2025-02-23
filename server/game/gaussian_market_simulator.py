@@ -1,9 +1,18 @@
+from typing import Dict, Union
 import numpy as np
 from datetime import datetime
 
 
+def update_market() -> None:
+    buy_volume, sell_volume = 0, 0
+    for player in self.players.values():
+        position = player["positions"][self.sim.epoch]
+        buy_volume += position if position > 0 else 0
+        sell_volume -= position if position < 0 else 0
+
+
 class GaussianMarketSimulator:
-    def __init__(self, epochs: int, initial_price: float = 100.0, volatility: float = 0.01, decay: float = 0.7) -> None:
+    def __init__(self, epochs: int, volatility: float = 0.01, decay: float = 0.7) -> None:
         # Parameters
         self.epochs = epochs
         self.volatility = volatility
@@ -19,7 +28,6 @@ class GaussianMarketSimulator:
 
         # Simulation output
         self.log_return = np.empty(epochs + 1, dtype=float)
-        self.price = np.empty(epochs + 1, dtype=float)
         self.datetime = np.empty(epochs + 1, dtype=object)
 
         # Initialize
@@ -31,8 +39,10 @@ class GaussianMarketSimulator:
         self.dispersion[0] = 0.0
         self.sentiment[0] = 0.0
         self.log_return[0] = 0.0
-        self.price[0] = initial_price
         self.get_next_price = self._initiate_market
+
+    def reference_players(self, players: Dict[str, Dict[str, Union[np.ndarray, int]]]) -> None:
+        self.players = players
 
     def _initiate_market(self, buy_volume: int, sell_volume: int) -> None:
         self.datetime[0] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -62,7 +72,6 @@ class GaussianMarketSimulator:
 
         # simulate price
         log_return = np.random.normal(surge + sentiment, jitter + dispersion)
-        price = self.price[self.epoch] * np.exp(log_return)
 
         # Update market state
         self.epoch = self.epoch + 1
@@ -73,49 +82,4 @@ class GaussianMarketSimulator:
         self.dispersion[self.epoch] = dispersion
         self.sentiment[self.epoch] = sentiment
         self.log_return[self.epoch] = log_return
-        self.price[self.epoch] = price
         self.datetime[self.epoch] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    # Simulate trades
-    trades = []
-    n_simulations = 200
-    buy_pattern = [0.25] * 16 + [0.5] * 16 + [0.75] * 16
-    trade_pattern = [1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2]
-
-    for i in range(n_simulations + 1):
-        n_trades = trade_pattern[i % len(trade_pattern)]
-        buy_fraction = buy_pattern[i % len(buy_pattern)]
-        n_buys = int(round(n_trades * buy_fraction))
-        trades.append((n_buys, n_trades - n_buys))
-
-    # Simulate market
-    simulator = MarketSimulator(n_simulations)
-    for n_buys, n_sells in trades:
-        simulator.get_next_price(n_buys, n_sells)
-
-    # Create subplots
-    fig, axs = plt.subplots(4, 2, figsize=(10, 15))
-    plots = [
-        (simulator.trading_volume[1:], "Trading Volumes", "plot"),
-        (simulator.order_flow[1:], "Order Flows", "plot"),
-        (simulator.jitter[1:], "Jitters", "plot"),
-        (simulator.surge[1:], "Surges", "plot"),
-        (simulator.dispersion[1:], "Dispersions", "plot"),
-        (simulator.sentiment[1:], "Sentiments", "plot"),
-        (simulator.log_return[1:], "Log Returns", "hist"),
-        (simulator.price[1:], "Prices", "plot"),
-    ]
-
-    for ax, (data, title, plot_type) in zip(axs.flat, plots):
-        if plot_type == "hist":
-            ax.hist(data, bins=20, alpha=0.5)
-        else:
-            ax.plot(data)
-        ax.set_title(title)
-
-    plt.tight_layout()
-    plt.show()
