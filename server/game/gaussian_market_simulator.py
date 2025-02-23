@@ -1,16 +1,7 @@
-from datetime import datetime
 from typing import Dict, Union
 
 import numpy as np
 from interfaces import MarketSimulatorInterface
-
-
-def update_market() -> None:
-    buy_volume, sell_volume = 0, 0
-    for player in self.players.values():
-        position = player["positions"][self.sim.epoch]
-        buy_volume += position if position > 0 else 0
-        sell_volume -= position if position < 0 else 0
 
 
 class GaussianMarketSimulator(MarketSimulatorInterface):
@@ -28,29 +19,31 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
         self.dispersion = np.empty(epochs + 1, dtype=float)
         self.sentiment = np.empty(epochs + 1, dtype=float)
 
-        # Simulation output
+        # Default attributes
+        self.players: Dict[str, Dict[str, Union[np.ndarray, int]]] = {}
         self.log_return = np.empty(epochs + 1, dtype=float)
-        self.datetime = np.empty(epochs + 1, dtype=object)
 
         # Initialize
         self.epoch = 0
-        self.trading_volume[0] = 0.0
-        self.order_flow[0] = 0.0
-        self.jitter[0] = 0.0
-        self.surge[0] = 0.0
-        self.dispersion[0] = 0.0
-        self.sentiment[0] = 0.0
-        self.log_return[0] = 0.0
-        self.update_maret = self._initiate_market
+        self.trading_volume[self.epoch] = 0.0
+        self.order_flow[self.epoch] = 0.0
+        self.jitter[self.epoch] = 0.0
+        self.surge[self.epoch] = 0.0
+        self.dispersion[self.epoch] = 0.0
+        self.sentiment[self.epoch] = 0.0
+        self.log_return[self.epoch] = 0.0
 
     def reference_players(self, players: Dict[str, Dict[str, Union[np.ndarray, int]]]) -> None:
         self.players = players
 
-    def _initiate_market(self, buy_volume: int, sell_volume: int) -> None:
-        self.datetime[0] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.update_market = self._update_market
+    def update_market(self) -> None:
+        # Compute trading volume
+        buy_volume, sell_volume = 0, 0
+        for player in self.players.values():
+            position = player["positions"][self.epoch]
+            buy_volume += position if position > 0 else 0
+            sell_volume -= position if position < 0 else 0
 
-    def _update_market(self, buy_volume: int, sell_volume: int) -> None:
         # calculate market metrics
         trading_volume = buy_volume + sell_volume or 1
         order_flow = buy_volume - sell_volume
@@ -76,7 +69,7 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
         log_return = np.random.normal(surge + sentiment, jitter + dispersion)
 
         # Update market state
-        self.epoch = self.epoch + 1
+        self.epoch += 1
         self.trading_volume[self.epoch] = trading_volume
         self.order_flow[self.epoch] = order_flow
         self.jitter[self.epoch] = jitter
@@ -84,4 +77,3 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
         self.dispersion[self.epoch] = dispersion
         self.sentiment[self.epoch] = sentiment
         self.log_return[self.epoch] = log_return
-        self.datetime[self.epoch] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

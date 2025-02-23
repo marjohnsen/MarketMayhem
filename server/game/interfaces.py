@@ -1,18 +1,22 @@
+import inspect
 from abc import ABC, ABCMeta, abstractmethod
 from typing import Dict, Union
+
 import numpy as np
-import inspect
 
 
 class MarketSimulatorMeta(ABCMeta):
     """
-    Metaclass enforcing the MarketSimulatorInterface protocol:
+    Enforces the implementation of specific behaviors in methods required by MarketSimulatorInterface.
     - requires `update_market` method to update `self.log_return[self.epoch]`
     - requires `update_market` method to increment `self.epoch`
     """
 
     def __new__(mcls, name, bases, namespace):
         cls = super().__new__(mcls, name, bases, namespace)
+
+        if cls.__abstractmethods__:
+            return cls
 
         if "update_market" in namespace:
             method_source = inspect.getsource(namespace["update_market"])
@@ -27,7 +31,7 @@ class MarketSimulatorMeta(ABCMeta):
 
 
 class MarketSimulatorInterface(ABC, metaclass=MarketSimulatorMeta):
-    """Defines the interface for market simulators"""
+    """Defines required methods and attributes for a market simulator."""
 
     @abstractmethod
     def __init__(self, epochs: int) -> None:
@@ -35,7 +39,6 @@ class MarketSimulatorInterface(ABC, metaclass=MarketSimulatorMeta):
         self.epoch: int = 0
         self.epochs: int = epochs
         self.players: Dict[str, Dict[str, Union[np.ndarray, int]]]
-        self.datetime: np.ndarray = np.empty(epochs + 1, dtype=float)
         self.log_return: np.ndarray = np.empty(epochs + 1, dtype=float)
 
     @abstractmethod
