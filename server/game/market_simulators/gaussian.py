@@ -1,7 +1,7 @@
-from typing import Dict, Union
+from typing import Dict, Any
 
 import numpy as np
-from interfaces import MarketSimulatorInterface
+from game.market_simulators.interface import MarketSimulatorInterface
 
 
 class GaussianMarketSimulator(MarketSimulatorInterface):
@@ -20,11 +20,11 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
         self.sentiment = np.empty(epochs + 1, dtype=float)
 
         # Default attributes
-        self.players: Dict[str, Dict[str, Union[np.ndarray, int]]] = {}
+        self.players: dict[str, dict[str, Any]] = {}
         self.log_return = np.empty(epochs + 1, dtype=float)
 
         # Initialize
-        self.epoch = 0
+        self.epoch: int = 0
         self.trading_volume[self.epoch] = 0.0
         self.order_flow[self.epoch] = 0.0
         self.jitter[self.epoch] = 0.0
@@ -33,10 +33,10 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
         self.sentiment[self.epoch] = 0.0
         self.log_return[self.epoch] = 0.0
 
-    def reference_players(self, players: Dict[str, Dict[str, Union[np.ndarray, int]]]) -> None:
+    def reference_players(self, players: Dict[str, Dict[str, Any]]) -> None:
         self.players = players
 
-    def update_market(self) -> None:
+    def update_state(self) -> None:
         # Compute trading volume
         buy_volume, sell_volume = 0, 0
         for player in self.players.values():
@@ -77,3 +77,11 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
         self.dispersion[self.epoch] = dispersion
         self.sentiment[self.epoch] = sentiment
         self.log_return[self.epoch] = log_return
+
+
+if __name__ == "__main__":
+    # Check if GaussianMarketSimulator is a subclass of MarketSimulatorInterface
+    if issubclass(GaussianMarketSimulator, MarketSimulatorInterface):
+        print("GaussianMarketSimulator is a subclass of MarketSimulatorInterface")
+    else:
+        print("GaussianMarketSimulator is not a subclass of MarketSimulatorInterface")

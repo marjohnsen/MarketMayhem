@@ -22,7 +22,7 @@ class Session(db.Model):
     key = db.Column(db.String(8), unique=True, nullable=False, default=lambda: uuid.uuid4().hex[:8])
     state = db.Column(db.Enum(SessionState), nullable=False, default=SessionState.LOBBY)
 
-    players = db.relationship("Player", backref="game", lazy=True, cascade="all, delete-orphan")
+    players = db.relationship("Player", backref="session", lazy=True, cascade="all, delete-orphan")
 
 
 class Player(db.Model):

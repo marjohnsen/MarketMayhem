@@ -2,6 +2,7 @@ from flask import Blueprint, Response, request, jsonify, current_app
 from app.models import Session, Player, PlayerState
 from typing import Dict, Any, Tuple, Union
 from app.db import db
+from game import engine
 
 admin_routes = Blueprint("admin_routes", __name__)
 
@@ -72,7 +73,8 @@ def start_game() -> Tuple[Response, int]:
     if not any(player.state == PlayerState.CONNECTED for player in session.players):
         return jsonify({"error": "Cannot start the with no players."}), 400
 
-    # Add game instace
+    # Add game instance to the session
+
     
 
      try:
