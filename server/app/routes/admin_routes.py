@@ -1,8 +1,11 @@
-from flask import Blueprint, Response, request, jsonify, current_app
-from app.models import Session, Player, PlayerState
-from typing import Dict, Any, Tuple, Union
+from typing import Any, Dict, Tuple, Union
+
+from flask import Blueprint, Response, current_app, jsonify, request
+
 from app.db import db
-from game import engine
+from app.models import Player, PlayerState, Session, SessionState
+from app.validators.admin import AdminValidator
+from game.engine import Exchange, SimulatorCatalog
 
 admin_routes = Blueprint("admin_routes", __name__)
 
@@ -26,13 +29,10 @@ def create_session() -> Tuple[Response, int]:
     - The session key players can use to join the session.
     """
 
-    # Load the request data
+    # Load and validate the request data
     data: Dict[str, Any] = request.get_json() or {}
-    admin_key: str = data.get("admin_key", "")
-
-    # Check authorization
-    if admin_key != current_app.config["ADMIN_KEY"]:
-        return jsonify({"error": f"{admin_key}, {current_app.config["ADMIN_KEY"]}"}), 401
+    validator: AdminValidator = AdminValidator(data)
+    validator.require_fields(["admin_key"]).validate_admin_key().check_errors()
 
     # Create and commit new session
     try:
@@ -56,34 +56,43 @@ def start_game() -> Tuple[Response, int]:
     """
     Starts the game.
     """
-    # Load the request data
+    # Load and validate the request data
     data: Dict[str, Any] = request.get_json() or {}
-    admin_key: str = data.get("admin_key", "")
-    session_key: str = data.get("session_key", "")
+    validator: AdminValidator = AdminValidator(data)
 
-    # Check authorization
-    if admin_key != current_app.config["ADMIN_KEY"]:
-        return jsonify({"error": "Unauthorized"}), 401
+    (
+        validator.require_fields(["admin_key", "session_key", "epochs"])
+        .validate_admin_key()
+        .validate_session_key()
+        .validate_active_players()
+        .validate_epochs()
+        .check_errors()
+    )
 
-    # Load and validate the session
-    if not (session := db.session.query(Session).filter_by(key=session_key).first()):
-        return jsonify({"error": f"Session with key '{session_key}' not found"}), 400
+    # Create market simulator instance
+    catalog = SimulatorCatalog()
+    SimulatorClass = catalog["GaussianMarketSimulator"]
+    market_simulator = SimulatorClass(epochs=10, volatility=0.1, decay=0.01)
 
-    # Check if there are enough players to start the game
-    if not any(player.state == PlayerState.CONNECTED for player in session.players):
-        return jsonify({"error": "Cannot start the with no players."}), 400
+    # Create exchange instance
+    exchange = Exchange(market_simulator, 10)
 
-    # Add game instance to the session
+    # Populate the exchange with active players
+    players = db.session.query(Player).filter_by(session_id=data["session_key"], state=PlayerState.CONNECTED).all()
+    for player in players:
+        exchange.add_player(player.key)
 
-    
+    # Upload exchange to the current_app
+    current_app.config["EXCHANGE"] = exchange
 
-     try:
-         db.session.commit()
-     except Exception as e:
-         db.session.rollback()
-   #     return jsonify({"error": str(e)}), 500
-
-    return jsonify({"message": "good!"}), 200
+    # Update sesson and commit
+    try:
+        db.session.query(Session).filter_by(key=data["session_key"]).update({"state": SessionState.PLAYING})
+        db.session.commit()
+        return jsonify({"message": "The game has started"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 @admin_routes.route("/change_player_state", methods=["POST"])
@@ -112,30 +121,24 @@ def change_player_state() -> Tuple[Response, int]:
 
     # Load the request data
     data: Dict[str, Any] = request.get_json() or {}
-    admin_key: str = data.get("admin_key", "")
-    session_key: str = data.get("session_key", "")
-    player_name: str = data.get("player_name", "")
-    new_state: Union[str, PlayerState] = data.get("new_state", "")
+    validator: AdminValidator = AdminValidator(data)
 
-    # Check authorization
-    if admin_key != current_app.config["ADMIN_KEY"]:
-        return jsonify({"error": "Unauthorized"}), 401
+    (
+        validator.require_fields(["admin_key", "session_key", "player_name"])
+        .validate_admin_key()
+        .validate_session_key()
+        .validate_player_key()
+        .validate_new_state()
+        .check_errors()
+    )
 
-    # Load and validate the session
-    if not (session := db.session.query(Session).filter_by(key=session_key).first()):
-        return jsonify({"error": f"Session with key '{session_key}' not found"}), 400
-
-    # Load and validate the player
-    if not (player := db.session.query(Player).filter_by(name=player_name, session_id=session.id).first()):
-        return jsonify({"error": f"Player '{player_name}' not found in session '{session_key}'"}), 400
-
-    # Validate new state
-    valid_states = {state.value for state in PlayerState}
-    if new_state not in valid_states:
-        return jsonify({"error": f"Invalid state '{new_state}'. Must be one of {list(valid_states)}"}), 400
+    session_key = data["session_key"]
+    player_name = data["player_name"]
+    new_state = data["new_state"]
 
     # Change and commit the player state
     try:
+        player = db.session.query(Player).filter_by(name=player_name, session_key=session_key).first()
         old_state = player.state
         new_state = PlayerState(new_state)
         player.state = new_state

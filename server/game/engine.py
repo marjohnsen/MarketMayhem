@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Type
 
 import numpy as np
 from game.market_simulators.interface import MarketSimulatorInterface
@@ -26,7 +26,7 @@ class Exchange:
         self.players[player_key]["leverage"] += position
 
 
-class MarketSimulatorCatalog:
+class SimulatorCatalog:
     def __init__(self) -> None:
         self._classes = {}
         self._populate()
@@ -37,6 +37,8 @@ class MarketSimulatorCatalog:
             if fname.endswith(".py") and not fname.startswith("__"):
                 module_path = os.path.join(folder, fname)
                 spec = importlib.util.spec_from_file_location(fname[:-3], module_path)
+                if spec is None or spec.loader is None:
+                    return
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 for name, cls in inspect.getmembers(module, inspect.isclass):
@@ -57,7 +59,7 @@ class MarketSimulatorCatalog:
 
 
 if __name__ == "__main__":
-    catalog = MarketSimulatorCatalog()
+    catalog = SimulatorCatalog()
     list_of_all_available = list(catalog)
     print("Available simulators:", list_of_all_available)
 

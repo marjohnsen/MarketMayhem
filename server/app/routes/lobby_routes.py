@@ -41,7 +41,7 @@ def join_session() -> Tuple[Response, int]:
         return jsonify({"error": "Session not found"}), 400
 
     if session.state != SessionState.LOBBY:
-        return jsonify({"error": "The lobby has closed because the game has started."}), 400
+        return jsonify({"error": "The game has started and the lobby is closed."}), 400
 
     # Load and validate the player
     if existing_player := Player.query.filter_by(name=player_name, session_id=session.id).first():
@@ -63,3 +63,35 @@ def join_session() -> Tuple[Response, int]:
             "player_key": new_player.key,
         }
     ), 200
+
+
+@lobby_routes.route("/session_status", methods=["POST"])
+def session_status() -> Tuple[Response, int]:
+    """
+    Returns the status of a session.
+    Request JSON must include:
+    - 'session_key': The unique key of the session to check.
+    Response:
+    - The status of the session.
+    """
+    # Load and validate the request data
+    data: Dict[str, Any] = request.get_json() or {}
+    session_key: str = data.get("session_key", "")
+    player_key: str = data.get("player_key", "")
+
+    if not session_key or not player_key:
+        return jsonify({"error": "Missing session_key or player_key"}), 400
+
+    if not session_key:
+        return jsonify({"error": "Missing session_key"}), 400
+
+    if not player_key:
+        return jsonify({"error": "Missing player_key"}), 400
+
+    # Load and validate the session
+    session = Session.query.filter_by(key=session_key).first()
+    if not session:
+        return jsonify({"error": "Session not found"}), 400
+
+    # Return the session status
+    return jsonify({"status": session.state.value}), 200
