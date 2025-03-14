@@ -1,11 +1,12 @@
-from typing import Any, Dict, Tuple, Union
+from threading import Thread
+from typing import Any, Dict, Tuple
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
 from app.db import db
 from app.models import Player, PlayerState, Session, SessionState
 from app.validators.admin import AdminValidator
-from game.engine import Exchange, SimulatorCatalog
+from game.engine import GameEngine
 
 admin_routes = Blueprint("admin_routes", __name__)
 
@@ -61,29 +62,29 @@ def start_game() -> Tuple[Response, int]:
     validator: AdminValidator = AdminValidator(data)
 
     (
-        validator.require_fields(["admin_key", "session_key", "epochs"])
+        validator.require_fields(["admin_key", "session_key", "simulator", "epochs", "timestep"])
         .validate_admin_key()
         .validate_session_key()
         .validate_active_players()
         .validate_epochs()
+        .validate_timestep()
+        .validate_simulator()
         .check_errors()
     )
 
-    # Create market simulator instance
-    catalog = SimulatorCatalog()
-    SimulatorClass = catalog["GaussianMarketSimulator"]
-    market_simulator = SimulatorClass(epochs=10, volatility=0.1, decay=0.01)
+    # Create the game
+    player_keys = [
+        player.key
+        for player in db.session.query(Player)
+        .filter_by(session_id=data["session_key"], state=PlayerState.CONNECTED)
+        .all()
+    ]
 
-    # Create exchange instance
-    exchange = Exchange(market_simulator, 10)
+    current_app.config["game"] = GameEngine(player_keys, data["simulator"], data["epochs"], data["timestep"])
 
-    # Populate the exchange with active players
-    players = db.session.query(Player).filter_by(session_id=data["session_key"], state=PlayerState.CONNECTED).all()
-    for player in players:
-        exchange.add_player(player.key)
-
-    # Upload exchange to the current_app
-    current_app.config["EXCHANGE"] = exchange
+    # Start the game in a separate thread
+    thread = Thread(target=current_app.config["game"].run, daemon=True)
+    thread.start()
 
     # Update sesson and commit
     try:

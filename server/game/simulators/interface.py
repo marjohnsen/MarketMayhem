@@ -1,6 +1,6 @@
 import inspect
 from abc import ABC, ABCMeta, abstractmethod
-from typing import Dict, Any
+from typing import Any, Dict
 
 import numpy as np
 
@@ -42,11 +42,16 @@ class MarketSimulatorInterface(ABC, metaclass=MarketSimulatorMeta):
         self.log_return: np.ndarray = np.empty(epochs + 1, dtype=float)
 
     @abstractmethod
+    def update_state(self) -> None:
+        """Required method to update the market state. Expected to update log_return[self.epoch] and increment epoch."""
+        pass
+
     def reference_players(self, players: Dict[str, Dict[str, Any]]) -> None:
         """Required method to reference the players from the game engine."""
         self.players = players
 
-    @abstractmethod
-    def update_state(self) -> None:
-        """Required method to update the market state. Expected to update log_return[self.epoch] and increment epoch."""
-        pass
+    def get_latest_price(self) -> Any:
+        """
+        Returns the latest log return (price).
+        """
+        return self.log_return[self.epoch]

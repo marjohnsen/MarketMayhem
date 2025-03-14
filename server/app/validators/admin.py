@@ -1,7 +1,9 @@
-from app.validators.base import BaseValidator
-from app.models import PlayerState, Player
-from app.db import db
 from typing import Self
+
+from app.db import db
+from app.models import Player, PlayerState
+from app.validators.base import BaseValidator
+from game.simulators.catalog import SimulatorCatalog
 
 
 class AdminValidator(BaseValidator):
@@ -15,6 +17,18 @@ class AdminValidator(BaseValidator):
 
         if not (60 <= epochs <= 600):
             self.errors.append("Epochs must be an integer between 60 and 600")
+        return self
+
+    def validate_timestep(self) -> Self:
+        """Ensure timestep is an int and within the required range."""
+        timestep = self.data.get("timestep")
+
+        if not isinstance(timestep, int):
+            self.errors.append("Timestep must be an integer")
+            return self
+
+        if not (60 <= timestep <= 600):
+            self.errors.append("Timestep must be an integer between 1 and 10")
         return self
 
     def validate_active_players(self) -> Self:
@@ -31,3 +45,11 @@ class AdminValidator(BaseValidator):
         valid_states = {state.value for state in PlayerState}
         if new_state not in valid_states:
             self.errors.append(f"Invalid state '{new_state}'. Must be one of {list(valid_states)}")
+
+        return self
+
+    def validate_simulator(self) -> Self:
+        simulator = self.data.get("simulator")
+        if simulator not in SimulatorCatalog:
+            self.errors.append(f"Simulator '{simulator}' does not eixt. Choose one of {list(SimulatorCatalog)}")
+        return self
