@@ -49,7 +49,7 @@ def join_session() -> Tuple[Response, int]:
 
     # Create and commit the player
     try:
-        new_player = Player(player_name, session.id)
+        new_player = Player(name=player_name, session_id=session.id)
         db.session.add(new_player)
         db.session.commit()
     except Exception as e:

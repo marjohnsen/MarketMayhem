@@ -1,7 +1,7 @@
 from typing import Self
 
 from app.db import db
-from app.models import Player, PlayerState
+from app.models import Session, Player, PlayerState
 from app.validators.base import BaseValidator
 from game.simulators.catalog import SimulatorCatalog
 
@@ -27,17 +27,17 @@ class AdminValidator(BaseValidator):
             self.errors.append("Timestep must be an integer")
             return self
 
-        if not (60 <= timestep <= 600):
+        if not (1 <= timestep <= 10):
             self.errors.append("Timestep must be an integer between 1 and 10")
         return self
 
     def validate_active_players(self) -> Self:
-        """Ensure at least one active (connected) player exists in the session."""
-        session_key = self.data.get("session_key")
-
-        if not db.session.query(Player).filter_by(session_id=session_key, state=PlayerState.CONNECTED).count():
+        session_obj = Session.query.filter_by(key=self.data.get("session_key")).first()
+        if (
+            not session_obj
+            or db.session.query(Player).filter_by(session_id=session_obj.id, state=PlayerState.CONNECTED).count() == 0
+        ):
             self.errors.append("Cannot start the game with no connected players.")
-
         return self
 
     def validate_new_state(self) -> Self:

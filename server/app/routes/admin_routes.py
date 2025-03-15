@@ -57,10 +57,11 @@ def start_game() -> Tuple[Response, int]:
     """
     Starts the game.
     """
-    # Load and validate the request data
+    # Load request data
     data: Dict[str, Any] = request.get_json() or {}
     validator: AdminValidator = AdminValidator(data)
 
+    # Validata request data
     (
         validator.require_fields(["admin_key", "session_key", "simulator", "epochs", "timestep"])
         .validate_admin_key()
@@ -73,13 +74,8 @@ def start_game() -> Tuple[Response, int]:
     )
 
     # Create the game
-    player_keys = [
-        player.key
-        for player in db.session.query(Player)
-        .filter_by(session_id=data["session_key"], state=PlayerState.CONNECTED)
-        .all()
-    ]
-
+    players = db.session.query(Player).filter_by(session_id=data["session_key"], state=PlayerState.CONNECTED).all()
+    player_keys = [player.key for player in players]
     current_app.config["game"] = GameEngine(player_keys, data["simulator"], data["epochs"], data["timestep"])
 
     # Start the game in a separate thread

@@ -49,9 +49,3 @@ class MarketSimulatorInterface(ABC, metaclass=MarketSimulatorMeta):
     def reference_players(self, players: Dict[str, Dict[str, Any]]) -> None:
         """Required method to reference the players from the game engine."""
         self.players = players
-
-    def get_latest_price(self) -> Any:
-        """
-        Returns the latest log return (price).
-        """
-        return self.log_return[self.epoch]

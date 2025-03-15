@@ -5,10 +5,11 @@ from typing import Any, Dict, Tuple
 game_routes = Blueprint("game_routes", __name__)
 
 
-@game_routes.route("/fetch_latest_price", methods=["POST"])
-def fetch_latest_price():
-    data: Dict[str, Any] = request.get_json() or {}
+@game_routes.route("/get_latest_price", methods=["POST"])
+def get_latest_price():
+    # data: Dict[str, Any] = request.get_json() or {}
 
-    return jsonify(data), 201
+    epoch, latest_price = current_app.config["game"].exchange.get_latest_price()
 
-latest_price current_app.config["game"].exchange.market.log_return
+    response: Dict[str, str] = {"epoch": epoch, "latest_price": latest_price}
+    return jsonify(response), 201
