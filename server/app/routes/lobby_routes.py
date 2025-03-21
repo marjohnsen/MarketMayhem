@@ -1,8 +1,11 @@
-from flask import Blueprint, Response, request, jsonify
-from app.models import Session, Player, SessionState
-from typing import Dict, Any, Tuple
-from app.db import db
 import re
+from typing import Any, Dict, Tuple
+
+from flask import Blueprint, Response, jsonify, request
+
+from app.db import db
+from app.models import Player, Session, SessionState
+from app.validators import LobbyValidators
 
 lobby_routes = Blueprint("lobby_routes", __name__)
 
@@ -25,31 +28,19 @@ def join_session() -> Tuple[Response, int]:
     """
     # Load and validate the request data
     data: Dict[str, Any] = request.get_json() or {}
-    session_key: str = data.get("session_key", "")
-    player_name: str = data.get("player_name", "")
-
-    if not session_key or not player_name:
-        return jsonify({"error": "Missing session_key or player_name"}), 400
-
-    if not re.match(r"^[a-zA-Z0-9]+$", player_name) or not (3 <= len(player_name) <= 20):
-        return jsonify({"error": "Player name can only contain between 3 and 20 alphanumeric characters"}), 400
-
-    # Load and validate the session
-    session = Session.query.filter_by(key=session_key).first()
-
-    if not session:
-        return jsonify({"error": "Session not found"}), 400
-
-    if session.state != SessionState.LOBBY:
-        return jsonify({"error": "The game has started and the lobby is closed."}), 400
-
-    # Load and validate the player
-    if existing_player := Player.query.filter_by(name=player_name, session_id=session.id).first():
-        return jsonify({"error": f"Player '{existing_player.name}' already exists"}), 400
+    validators = LobbyValidators(data)
+    (
+        validators.require_fields(["session_key", "player_name"])
+        .validate_session_key()
+        .validate_player_name()
+        .validate_state()
+        .check_errors()
+    )
 
     # Create and commit the player
     try:
-        new_player = Player(name=player_name, session_id=session.id)
+        session = db.session.query(Session).filter_by(key=data["session_key"]).first()
+        new_player = Player(name=data["player_name"], session_id=session.id)
         db.session.add(new_player)
         db.session.commit()
     except Exception as e:
@@ -59,7 +50,7 @@ def join_session() -> Tuple[Response, int]:
     # Return the success message and the player key
     return jsonify(
         {
-            "message": f"Player {player_name} has successfully joined the session.",
+            "message": f"Player {data['player_name']} has successfully joined the session.",
             "player_key": new_player.key,
         }
     ), 200

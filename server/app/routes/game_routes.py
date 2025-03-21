@@ -7,7 +7,7 @@ game_routes = Blueprint("game_routes", __name__)
 
 @game_routes.route("/get_latest_price", methods=["POST"])
 def get_latest_price():
-    # data: Dict[str, Any] = request.get_json() or {}
+    data: Dict[str, Any] = request.get_json() or {}
 
     epoch, latest_price = current_app.config["game"].exchange.get_latest_price()
 

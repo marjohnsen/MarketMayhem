@@ -28,8 +28,8 @@ class Exchange:
 
     def update_market(self) -> None:
         with self.lock:
-            self.market.update_state()
+            self.sum_log_return += self.market.update_state()
 
     def get_latest_price(self) -> tuple[int, float]:
         with self.lock:
-            return self.market.epoch, self.start_price * np.exp(np.sum(self.market.log_return[: self.market.epoch]))
+            return self.market.epoch, np.exp(self.sum_log_return) * self.start_price

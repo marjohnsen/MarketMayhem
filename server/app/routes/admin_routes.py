@@ -5,7 +5,7 @@ from flask import Blueprint, Response, current_app, jsonify, request
 
 from app.db import db
 from app.models import Player, PlayerState, Session, SessionState
-from app.validators.admin import AdminValidator
+from app.validators import AdminValidators
 from game.engine import GameEngine
 
 admin_routes = Blueprint("admin_routes", __name__)
@@ -32,8 +32,8 @@ def create_session() -> Tuple[Response, int]:
 
     # Load and validate the request data
     data: Dict[str, Any] = request.get_json() or {}
-    validator: AdminValidator = AdminValidator(data)
-    validator.require_fields(["admin_key"]).validate_admin_key().check_errors()
+    validators = AdminValidators(data)
+    validators.require_fields(["admin_key"]).validate_admin_key().check_errors()
 
     # Create and commit new session
     try:
@@ -59,11 +59,11 @@ def start_game() -> Tuple[Response, int]:
     """
     # Load request data
     data: Dict[str, Any] = request.get_json() or {}
-    validator: AdminValidator = AdminValidator(data)
+    validators = AdminValidators(data)
 
     # Validata request data
     (
-        validator.require_fields(["admin_key", "session_key", "simulator", "epochs", "timestep"])
+        validators.require_fields(["admin_key", "session_key", "simulator", "epochs", "timestep"])
         .validate_admin_key()
         .validate_session_key()
         .validate_active_players()
@@ -118,10 +118,10 @@ def change_player_state() -> Tuple[Response, int]:
 
     # Load the request data
     data: Dict[str, Any] = request.get_json() or {}
-    validator: AdminValidator = AdminValidator(data)
+    validators = AdminValidators(data)
 
     (
-        validator.require_fields(["admin_key", "session_key", "player_name"])
+        validators.require_fields(["admin_key", "session_key", "player_name"])
         .validate_admin_key()
         .validate_session_key()
         .validate_player_key()

@@ -28,7 +28,7 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
         self.sentiment[self.epoch] = 0.0
         self.log_return[self.epoch] = 0.0
 
-    def update_state(self) -> None:
+    def update_state(self) -> float:
         # Compute trading volume
         buy_volume, sell_volume = 0, 0
         for player in self.players.values():
@@ -37,7 +37,7 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
             sell_volume -= position if position < 0 else 0
 
         # calculate market metrics
-        trading_volume = buy_volume + sell_volume or 1
+        trading_volume = buy_volume + sell_volume
         order_flow = buy_volume - sell_volume
 
         # calculate percentile of trading volume
@@ -70,6 +70,36 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
         self.sentiment[self.epoch] = sentiment
         self.log_return[self.epoch] = log_return
 
+        return self.log_return[self.epoch]
+
 
 if __name__ == "__main__":
-    print(issubclass(GaussianMarketSimulator, MarketSimulatorInterface))
+    from matplotlib import pyplot as plt
+
+    simulator = GaussianMarketSimulator(100)
+    players = {"player1": {"positions": np.zeros(102), "leverage": 0}}
+    simulator.reference_players(players)
+
+    while simulator.epoch < simulator.epochs:
+        simulator.update_state()
+
+    arrays = [
+        (simulator.trading_volume, "Trading Volume"),
+        (simulator.order_flow, "Order Flow"),
+        (simulator.jitter, "Jitter"),
+        (simulator.surge, "Surge"),
+        (simulator.dispersion, "Dispersion"),
+        (simulator.sentiment, "Sentiment"),
+        (simulator.log_return, "Log Return"),
+        (100 * np.exp(np.cumsum(simulator.log_return)), "Price"),
+    ]
+
+    fig, axs = plt.subplots(nrows=len(arrays), ncols=1, sharex=True, figsize=(10, 15))
+    for ax, (arr, label) in zip(axs, arrays):
+        ax.plot(arr, label=label)
+        ax.set_ylabel(label)
+        ax.legend(loc="upper right")
+
+    axs[-1].set_xlabel("Epoch")
+    plt.tight_layout()
+    plt.show()

@@ -32,7 +32,7 @@ class GameEngine:
         self.running = True
         while self.exchange.market.epoch <= self.exchange.market.epochs and self.running:
             time.sleep(((self.timestep - 0.1) - (time.time() % self.timestep)) % self.timestep)
-            self.exchange.market.update_state()
+            self.exchange.update_market()
 
     def stop(self):
         self.running = False
