@@ -2,7 +2,7 @@ import threading
 from typing import Any
 
 import numpy as np
-from market import Market
+from game.market import Market
 
 
 class Exchange:
@@ -49,3 +49,22 @@ class Exchange:
             while self.updating:
                 self.condition.wait()
             return self.market.epoch, np.exp(self.sum_log_return) * self.start_price
+
+
+if __name__ == "__main__":
+    market = Market(epochs=10)
+    exchange = Exchange(market)
+    exchange.add_player_account("player1")
+    exchange.add_player_account("player2")
+    exchange.add_player_account("player3")
+    exchange.update_market()
+    exchange.trade("player1", 10)
+    exchange.update_market()
+    exchange.trade("player2", -5)
+    exchange.update_market()
+    exchange.trade("player3", 15)
+    exchange.update_market()
+    epoch, price = exchange.get_latest_price()
+    print(f"Epoch: {epoch}, Price: {price}")
+    for key, value in exchange.accounts.items():
+        print(key, value)

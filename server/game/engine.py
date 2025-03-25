@@ -1,29 +1,28 @@
+import threading
 import time
 from typing import List, Optional
+
 from game.exchange import Exchange
 from game.market import Market
-import threading
 
 
 class GameEngine:
     """Orchestrates the game loop."""
 
-    def __init__(self, player_keys: List[str], simulator: str, epochs: int, timestep: int) -> None:
+    def __init__(self, player_keys: List[str], epochs: int, timestep: int) -> None:
         """
         Initializes the game components.
 
         :param player_keys: List of player keys.
-        :param simulator: The simulator to use.
         :param epochs: Number of epochs to run the game for.
         :param timestep: The time interval between each epoch.
         """
         self.timestep: int = timestep
-        self.simulator: str = simulator
         self.running: bool = False
         self.updating: bool = False
         self.thread: Optional[threading.Thread] = None
 
-        market = Market(epochs)
+        market: Market = Market(epochs)
         self.exchange: Exchange = Exchange(market)
 
         for key in player_keys:
@@ -47,3 +46,11 @@ class GameEngine:
         self.running = False
         if self.thread and self.thread.is_alive():
             self.thread.join()
+
+
+if __name__ == "__main__":
+    game = GameEngine(["player1", "player2", "player3"], epochs=10, timestep=1)
+    game.start()
+    game.sleep(3)
+    game.stop()
+    print(game.exchange.market.epoch)
