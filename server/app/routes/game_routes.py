@@ -13,3 +13,13 @@ def get_latest_price():
 
     response: Dict[str, str] = {"epoch": epoch, "latest_price": latest_price}
     return jsonify(response), 201
+
+
+@game_routes.route("/trade", methods=["POST"])
+def trade():
+    pass
+
+
+@game_routes.route("/", methods=["POST"])
+def trade():
+    pass
