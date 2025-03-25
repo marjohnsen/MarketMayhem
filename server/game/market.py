@@ -1,17 +1,19 @@
 import numpy as np
-from game.simulators.interface import MarketSimulatorInterface
+from typing import Any, Dict
 
 
-class GaussianMarketSimulator(MarketSimulatorInterface):
+class Market:
+    """Simulates price movements in a financial market."""
+
     def __init__(self, epochs: int, volatility: float = 0.01, decay: float = 0.7) -> None:
-        # Initialize parent class
-        super().__init__(epochs)
+        self.epoch: int = 0
+        self.epochs: int = epochs
+        self.accounts: Dict[str, Dict[str, Any]]
+        self.log_return: np.ndarray = np.empty(epochs + 1, dtype=float)
 
-        # Parameters
         self.volatility = volatility
         self.decay = decay
 
-        # Simulation states
         self.trading_volume = np.empty(epochs + 1, dtype=float)
         self.order_flow = np.empty(epochs + 1, dtype=float)
         self.jitter = np.empty(epochs + 1, dtype=float)
@@ -19,7 +21,6 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
         self.dispersion = np.empty(epochs + 1, dtype=float)
         self.sentiment = np.empty(epochs + 1, dtype=float)
 
-        # Initialize
         self.trading_volume[self.epoch] = 0.0
         self.order_flow[self.epoch] = 0.0
         self.jitter[self.epoch] = 0.0
@@ -28,11 +29,15 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
         self.sentiment[self.epoch] = 0.0
         self.log_return[self.epoch] = 0.0
 
+    def reference_players(self, accounts: Dict[str, Dict[str, Any]]) -> None:
+        """Required method to reference the players from the game engine."""
+        self.accounts = accounts
+
     def update_state(self) -> float:
         # Compute trading volume
         buy_volume, sell_volume = 0, 0
-        for player in self.players.values():
-            position = player["positions"][self.epoch]
+        for account in self.accounts.values():
+            position = account["positions"][self.epoch]
             buy_volume += position if position > 0 else 0
             sell_volume -= position if position < 0 else 0
 
@@ -76,22 +81,22 @@ class GaussianMarketSimulator(MarketSimulatorInterface):
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
 
-    simulator = GaussianMarketSimulator(100)
+    market = Market(100)
     players = {"player1": {"positions": np.zeros(102), "leverage": 0}}
-    simulator.reference_players(players)
+    market.reference_players(players)
 
-    while simulator.epoch < simulator.epochs:
-        simulator.update_state()
+    while market.epoch < market.epochs:
+        market.update_state()
 
     arrays = [
-        (simulator.trading_volume, "Trading Volume"),
-        (simulator.order_flow, "Order Flow"),
-        (simulator.jitter, "Jitter"),
-        (simulator.surge, "Surge"),
-        (simulator.dispersion, "Dispersion"),
-        (simulator.sentiment, "Sentiment"),
-        (simulator.log_return, "Log Return"),
-        (100 * np.exp(np.cumsum(simulator.log_return)), "Price"),
+        (market.trading_volume, "Trading Volume"),
+        (market.order_flow, "Order Flow"),
+        (market.jitter, "Jitter"),
+        (market.surge, "Surge"),
+        (market.dispersion, "Dispersion"),
+        (market.sentiment, "Sentiment"),
+        (market.log_return, "Log Return"),
+        (100 * np.exp(np.cumsum(market.log_return)), "Price"),
     ]
 
     fig, axs = plt.subplots(nrows=len(arrays), ncols=1, sharex=True, figsize=(10, 15))
