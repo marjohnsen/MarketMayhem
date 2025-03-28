@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Self
 from flask import abort, current_app, jsonify
 
 from app.db import db
+from app.game import games
 from app.models import Player, PlayerState, Session, SessionState
-from game.simulators.catalog import SimulatorCatalog
 
 
 class BaseValidators:
@@ -44,6 +44,14 @@ class BaseValidators:
 
     def validate_player_key(self) -> Self:
         """Ensure the player exists in the session."""
+        player_key = self.data.get("player_key")
+        session_key = self.data.get("session_key")
+        if not db.session.query(Player).filter_by(key=player_key, session_key=session_key).first():
+            self.errors.append(f"Player '{player_key}' not found in session '{session_key}'.")
+        return self
+
+    def validate_player_name(self) -> Self:
+        """Ensure the player exists in the session."""
         player_name = self.data.get("player_name")
         session_key = self.data.get("session_key")
         if not db.session.query(Player).filter_by(name=player_name, session_key=session_key).first():
@@ -77,12 +85,16 @@ class AdminValidators(BaseValidators):
         return self
 
     def validate_active_players(self) -> Self:
-        session_obj = Session.query.filter_by(key=self.data.get("session_key")).first()
-        if (
-            not session_obj
-            or db.session.query(Player).filter_by(session_id=session_obj.id, state=PlayerState.CONNECTED).count() == 0
-        ):
+        """Ensure there are active players in the session."""
+        session_key = self.data.get("session_key")
+
+        connected_players = (
+            db.session.query(Player).filter_by(session_key=session_key, state=PlayerState.CONNECTED).count()
+        )
+
+        if connected_players == 0:
             self.errors.append("Cannot start the game with no connected players.")
+
         return self
 
     def validate_new_state(self) -> Self:
@@ -93,27 +105,49 @@ class AdminValidators(BaseValidators):
 
         return self
 
-    def validate_simulator(self) -> Self:
-        simulator = self.data.get("simulator")
-        if simulator not in SimulatorCatalog:
-            self.errors.append(f"Simulator '{simulator}' does not eixt. Choose one of {list(SimulatorCatalog)}")
-        return self
-
 
 class LobbyValidators(BaseValidators):
-    def validate_player_name(self) -> Self:
+    def validate_new_player_name(self) -> Self:
+        """Ensure the player name is valid."""
         player_name = str(self.data.get("player_name"))
-        if not re.match(r"^[a-zA-Z0-9]+$", player_name) or not (3 <= len(player_name) <= 20):
-            self.errors.append("Player name can only contain between 3 and 20 alphanumeric characters")
         session_key = self.data.get("session_key")
-        session = db.session.query(Session).filter_by(key=session_key).first()
-        if existing_player := Player.query.filter_by(name=player_name, session_id=session.id).first():
-            self.errors.append(f"Player '{existing_player.name}' already exists")
+
+        if not re.match(r"^[a-zA-Z0-9]+$", player_name) or not (3 <= len(player_name) <= 20):
+            self.errors.append("Player name can only contain between 3 and 20 alphanumeric characters.")
+
+        if Player.query.filter_by(name=player_name, session_key=session_key).first():
+            self.errors.append(f"Player '{player_name}' already exists in session '{session_key}'.")
+
         return self
 
     def validate_state(self) -> Self:
+        """Ensure the session is in the lobby state."""
         session_key = self.data.get("session_key")
         session = db.session.query(Session).filter_by(key=session_key).first()
         if session and session.state != SessionState.LOBBY:
             self.errors.append("The game has started and the lobby is closed.")
+        return self
+
+
+class GameValidators(BaseValidators):
+    def validate_position(self) -> Self:
+        position = int(self.data["position"])
+        if not isinstance(position, int):
+            self.errors.append("Position must be an integer.")
+        return self
+
+    def validate_game_stopped(self) -> Self:
+        engine = games.get(self.data["session_key"])
+        if not engine:
+            self.errors.append("The game has not started")
+        elif engine.running:
+            self.errors.append("The game is still running")
+        return self
+
+    def validate_game_running(self) -> Self:
+        engine = games.get(self.data["session_key"])
+        if not engine:
+            self.errors.append("The game has not started")
+        elif not engine.running:
+            self.errors.append("The game has ended")
         return self

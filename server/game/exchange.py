@@ -2,11 +2,16 @@ import threading
 from typing import Any
 
 import numpy as np
+
 from game.market import Market
 
 
 class Exchange:
-    """Manages interactions with the market."""
+    """
+    Manages interactions with the market.
+
+    Uses a conditional to ensure that no trades or updates are made while the market is updating.
+    """
 
     def __init__(self, market: Market) -> None:
         self.accounts: dict[str, dict[str, Any]] = {}
@@ -20,14 +25,12 @@ class Exchange:
         self.market.reference_players(self.accounts)
 
     def add_player_account(self, player_key: str) -> None:
-        """Adds a player account to the exchange."""
         self.accounts[player_key] = {
-            "positions": np.full(self.market.epochs + 1, np.nan, dtype=float),
+            "positions": np.zeros(self.market.epochs + 1, dtype=float),
             "leverage": 0,
         }
 
     def update_market(self) -> None:
-        """Updates the market state."""
         with self.condition:
             while self.updating:
                 self.condition.wait()
@@ -36,19 +39,20 @@ class Exchange:
             self.updating = False
             self.condition.notify_all()
 
-    def trade(self, player_key: str, position: int) -> None:
-        """Executes a trade and update the player account."""
-        with self.condition:
-            while self.updating:
-                self.condition.wait()
-            self.accounts[player_key]["positions"][self.market.epoch + 1] = position
-            self.accounts[player_key]["leverage"] += position
-
     def get_latest_price(self) -> tuple[int, float]:
         with self.condition:
             while self.updating:
                 self.condition.wait()
             return self.market.epoch, np.exp(self.sum_log_return) * self.start_price
+
+    def trade(self, player_key: str, position: int) -> tuple[int, int]:
+        with self.condition:
+            while self.updating:
+                self.condition.wait()
+            if abs(self.accounts[player_key]["leverage"] + position) <= 10:
+                self.accounts[player_key]["positions"][self.market.epoch + 1] = position
+                self.accounts[player_key]["leverage"] += position
+            return self.market.epoch, self.accounts[player_key]["leverage"]
 
 
 if __name__ == "__main__":

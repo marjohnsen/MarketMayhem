@@ -38,8 +38,8 @@ class Market:
         buy_volume, sell_volume = 0, 0
         for account in self.accounts.values():
             position = account["positions"][self.epoch]
-            buy_volume += position if position > 0 else 0
-            sell_volume -= position if position < 0 else 0
+            buy_volume += position
+            sell_volume -= position
 
         # calculate market metrics
         trading_volume = buy_volume + sell_volume

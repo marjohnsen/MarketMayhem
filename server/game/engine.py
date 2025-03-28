@@ -31,9 +31,10 @@ class GameEngine:
     def run(self) -> None:
         """Starts the game loop."""
         self.running = True
-        while self.exchange.market.epoch <= self.exchange.market.epochs and self.running:
+        while self.exchange.market.epoch < self.exchange.market.epochs and self.running:
             time.sleep(((self.timestep - 0.1) - (time.time() % self.timestep)) % self.timestep)
             self.exchange.update_market()
+        self.running = False
 
     def start(self) -> None:
         """Starts the game in its own thread."""
@@ -51,6 +52,6 @@ class GameEngine:
 if __name__ == "__main__":
     game = GameEngine(["player1", "player2", "player3"], epochs=10, timestep=1)
     game.start()
-    game.sleep(3)
+    time.sleep(3)
     game.stop()
     print(game.exchange.market.epoch)
