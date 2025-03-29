@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Configuration
 ADMIN_KEY="123"
 EPOCHS=60
 TIMESTEP=1

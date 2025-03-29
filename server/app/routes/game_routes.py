@@ -2,6 +2,7 @@ from typing import Any, Dict, Tuple
 
 import numpy as np
 from flask import Blueprint, Response, jsonify, request
+from models import Player
 
 from app.game import games
 from app.validators import GameValidators
@@ -23,7 +24,7 @@ def get_latest_price() -> Tuple[Response, int]:
 
     epoch, latest_price = games[data["session_key"]].exchange.get_latest_price()
 
-    response: Dict[str, str] = {"epoch": epoch, "price": latest_price}
+    response: Dict[str, int | float] = {"epoch": epoch, "price": latest_price}
     return jsonify(response), 201
 
 
@@ -68,6 +69,8 @@ def get_scoreboard() -> Tuple[Response, int]:
     scoreboard = {}
 
     for player_key, account in accounts.items():
+        player = Player.query.filter_by(session_key=data["session_key"]).first()
+        player_name = player.name  # type: ignore
         position_changes = np.array(account["positions"])
         positions = forward_fill(np.cumsum(position_changes))
         portfolio = start_price * np.exp(np.cumsum(positions * log_returns))
@@ -76,6 +79,7 @@ def get_scoreboard() -> Tuple[Response, int]:
             "positions": positions.tolist(),
             "portfolio": portfolio.tolist(),
             "score": portfolio[-1],
+            "name": player_name,
         }
 
     scoreboard["price"] = {"series": price_series.tolist(), "start_price": start_price}
