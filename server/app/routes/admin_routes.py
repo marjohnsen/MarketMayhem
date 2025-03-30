@@ -43,12 +43,20 @@ def start_game() -> Tuple[Response, int]:
         .check_errors()
     )
 
-    players = db.session.query(Player).filter_by(session_key=data["session_key"], state=PlayerState.CONNECTED).all()
+    players = (
+        db.session.query(Player)
+        .filter_by(session_key=data["session_key"], state=PlayerState.CONNECTED)
+        .all()
+    )
     player_keys = [player.key for player in players]
-    games[data["session_key"]] = GameEngine(player_keys, data["epochs"], data["timestep"])
+    games[data["session_key"]] = GameEngine(
+        player_keys, data["epochs"], data["timestep"]
+    )
     games[data["session_key"]].start()
 
-    db.session.query(Session).filter_by(key=data["session_key"]).update({"state": SessionState.PLAYING})
+    db.session.query(Session).filter_by(key=data["session_key"]).update(
+        {"state": SessionState.PLAYING}
+    )
     db.session.commit()
 
     return jsonify({"message": "The game has started"}), 200
@@ -72,7 +80,12 @@ def change_player_state() -> Tuple[Response, int]:
     player_name = data["player_name"]
     new_state = data["new_state"]
 
-    player = cast(Player, db.session.query(Player).filter_by(name=player_name, session_key=session_key).first())
+    player = cast(
+        Player,
+        db.session.query(Player)
+        .filter_by(name=player_name, session_key=session_key)
+        .first(),
+    )
     old_state = player.state
     new_state = PlayerState(new_state)
     player.state = new_state

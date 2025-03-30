@@ -2,7 +2,7 @@ from typing import Any, Dict, Tuple
 
 import numpy as np
 from flask import Blueprint, Response, jsonify, request
-from models import Player
+from app.models import Player
 
 from app.game import games
 from app.validators import GameValidators
@@ -42,7 +42,9 @@ def trade() -> Tuple[Response, int]:
         .check_errors()
     )
 
-    epoch, leverage = games[data["session_key"]].exchange.trade(data["player_key"], int(data["position"]))
+    epoch, leverage = games[data["session_key"]].exchange.trade(
+        data["player_key"], int(data["position"])
+    )
 
     return jsonify({"epoch": epoch, "leverage": leverage}), 201
 
@@ -51,7 +53,9 @@ def trade() -> Tuple[Response, int]:
 def get_scoreboard() -> Tuple[Response, int]:
     data: Dict[str, Any] = request.get_json() or {}
     validators = GameValidators(data)
-    validators.require_fields(["session_key"]).validate_session_key().validate_game_stopped().check_errors()
+    validators.require_fields(
+        ["session_key"]
+    ).validate_session_key().validate_game_stopped().check_errors()
 
     engine = games[data["session_key"]]
     accounts = engine.exchange.accounts
