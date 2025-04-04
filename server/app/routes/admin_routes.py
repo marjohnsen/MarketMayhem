@@ -96,3 +96,24 @@ def change_player_state() -> Tuple[Response, int]:
             "message": f"Player '{player_name}' state changed from {old_state} to '{new_state}' in session '{session_key}'"
         }
     ), 200
+
+
+@admin_routes.route("/get_session_status", methods=["POST"])
+def get_session_status() -> Tuple[Response, int]:
+    """
+    Returns the status of a session.
+    """
+    data: Dict[str, Any] = request.get_json() or {}
+    session_key: str = data.get("session_key", "")
+
+    validators = LobbyValidators(data)
+
+    (
+        validators.require_fields(["session_key", "player_key"])
+        .validate_player_key()
+        .validate_session_key()
+        .check_errors()
+    )
+
+    session = cast(Session, Session.query.filter_by(key=session_key).first())
+    return jsonify({"status": session.state.value}), 200
