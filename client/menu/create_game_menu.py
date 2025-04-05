@@ -1,6 +1,8 @@
 import curses
+
 from api.admin import AdminAPI
-from menu.interface import menu_interface, get_input, draw_centered_text
+from api.singleton import SingletonMeta
+from menu.interface import draw_centered_text, get_input, menu_interface
 
 
 @menu_interface("menu/ascii_art/create_game.txt")
@@ -20,26 +22,27 @@ def create_game_menu(stdscr, options, current_idx, header, offset):  # type: ign
 
     try:
         api = AdminAPI(address, key)
-        response = api.create_session()
-        if not (session_key := response.get("session_key")):
-            raise ValueError("Session key not found in response.")
+        response = api.create_game()
+        if not (game_key := response.get("game_key")):
+            del SingletonMeta._instances[AdminAPI]
+            raise ValueError("Game key not found in response.")
 
     except Exception as e:
-        draw_centered_text(stdscr, "Failed to create session...", offset + 4, 3)
+        draw_centered_text(stdscr, "Failed to create game...", offset + 4, 3)
         stdscr.refresh()
         stdscr.getch()
         return
 
     draw_centered_text(
         stdscr,
-        "Share the server address and session key with the players you want to join:",
+        "Share the server address and game key with the players you want to join:",
         offset + 4,
         2,
     )
 
     draw_centered_text(
         stdscr,
-        f"{session_key}",
+        f"{game_key}",
         offset + 6,
         1,
     )

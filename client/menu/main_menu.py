@@ -9,8 +9,8 @@ options = ["Join Lobby", "Admin Menu", "Exit"]
 
 @menu_interface("menu/ascii_art/marketmayhem.txt", options)
 def main_menu(stdscr, options, current_idx, header, offset):  # type: ignore
-    stdscr.move(offset, 0)
-    stdscr.clrtobot()
+    #    stdscr.move(offset, 0)
+    #    stdscr.clrtobot()
     if options[current_idx] == options[0]:
         # lobby_menu(stdscr)
         pass
