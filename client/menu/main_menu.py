@@ -1,21 +1,20 @@
 import curses
 from menu.interface import menu_interface
+from menu.host_menu import host_menu
 
-# from menu.lobby_menu import lobby_menu
-from menu.admin_menu import admin_menu
+information = []
 
-options = ["Join Lobby", "Admin Menu", "Exit"]
+choices = ["Join Game", "Host Menu", "Exit"]
 
 
-@menu_interface("menu/ascii_art/marketmayhem.txt", options)
+@menu_interface("menu/ascii_art/marketmayhem.txt", information, choices)
 def main_menu(stdscr, options, current_idx, header, offset):  # type: ignore
-    #    stdscr.move(offset, 0)
-    #    stdscr.clrtobot()
     if options[current_idx] == options[0]:
         # lobby_menu(stdscr)
         pass
     elif options[current_idx] == options[1]:
-        admin_menu(stdscr)  # type: ignore
+        host_menu(stdscr)  # type: ignore
+        pass
     elif options[current_idx] == options[2]:
         return -2
 

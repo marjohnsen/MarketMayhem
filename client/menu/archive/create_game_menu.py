@@ -18,17 +18,21 @@ def create_game_menu(stdscr, options, current_idx, header, offset):  # type: ign
         "*" * len(key),
         curses.color_pair(2),
     )
+    epochs = get_input(stdscr, "Enter how many steps to simulate: ", offset + 3, center)
+    timestep = get_input(
+        stdscr, "Enter the time in seconds between each step: ", offset + 4, center
+    )
     stdscr.refresh()
 
     try:
         api = AdminAPI(address, key)
-        response = api.create_game()
+        response = api.create_game(epochs, timestep)
         if not (game_key := response.get("game_key")):
             del SingletonMeta._instances[AdminAPI]
             raise ValueError("Game key not found in response.")
 
     except Exception as e:
-        draw_centered_text(stdscr, "Failed to create game...", offset + 4, 3)
+        draw_centered_text(stdscr, f"{e}", offset + 6, 3)
         stdscr.refresh()
         stdscr.getch()
         return
@@ -36,16 +40,17 @@ def create_game_menu(stdscr, options, current_idx, header, offset):  # type: ign
     draw_centered_text(
         stdscr,
         "Share the server address and game key with the players you want to join:",
-        offset + 4,
+        offset + 6,
         2,
     )
 
     draw_centered_text(
         stdscr,
         f"{game_key}",
-        offset + 6,
+        offset + 7,
         1,
     )
+
     stdscr.getch()
 
 
