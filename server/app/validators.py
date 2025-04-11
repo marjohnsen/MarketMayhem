@@ -5,7 +5,7 @@ from flask import abort, current_app, jsonify
 
 from app.db import db
 from app.game import games
-from app.models import Player, Session
+from app.models import Player, Lobby
 
 
 class BaseValidators:
@@ -38,7 +38,7 @@ class BaseValidators:
     def validate_game_key(self) -> Self:
         """Ensure the session exists."""
         game_key = self.data.get("game_key")
-        if not db.session.query(Session).filter_by(key=game_key).first():
+        if not db.session.query(Lobby).filter_by(key=game_key).first():
             self.errors.append(f"Session '{game_key}' not found.")
         return self
 

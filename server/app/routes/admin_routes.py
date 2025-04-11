@@ -4,7 +4,7 @@ from flask import Blueprint, Response, jsonify, request
 
 from app.db import db
 from app.game import games
-from app.models import Player, Session
+from app.models import Player, Lobby
 from app.validators import AdminValidators
 from game.engine import GameEngine
 
@@ -24,13 +24,13 @@ def create_game() -> Tuple[Response, int]:
         .check_errors()
     )
 
-    session: Session = Session()
-    games[session.key] = GameEngine(data["epochs"], data["timestep"])
-    db.session.add(session)
+    lobby: Lobby = Lobby()
+    games[lobby.key] = GameEngine(data["epochs"], data["timestep"])
+    db.session.add(lobby)
     db.session.commit()
 
     response_data: Dict[str, str] = {
-        "game_key": session.key,
+        "game_key": lobby.key,
     }
     return jsonify(response_data), 201
 

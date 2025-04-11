@@ -2,8 +2,8 @@ import uuid
 from app.db import db
 
 
-class Session(db.Model):
-    __tablename__ = "sessions"
+class Lobby(db.Model):
+    __tablename__ = "lobbies"
 
     key = db.Column(
         db.String(8),
@@ -13,7 +13,7 @@ class Session(db.Model):
         default=lambda: uuid.uuid4().hex[:8],
     )
 
-    players = db.relationship("Player", backref="session", lazy=True, cascade="all, delete-orphan")
+    players = db.relationship("Player", backref="lobby", lazy=True, cascade="all, delete-orphan")
 
 
 class Player(db.Model):
@@ -27,6 +27,6 @@ class Player(db.Model):
         default=lambda: uuid.uuid4().hex[:8],
     )
     name = db.Column(db.String(20), nullable=False)
-    game_key = db.Column(db.String(8), db.ForeignKey("sessions.key"), nullable=False, index=True)
+    game_key = db.Column(db.String(8), db.ForeignKey("lobbies.key"), nullable=False, index=True)
 
     __table_args__ = (db.UniqueConstraint("name", "game_key", name="uq_player_name_gameplay"),)
