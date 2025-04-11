@@ -1,29 +1,36 @@
-from typing import Any, Dict, Tuple, cast
+from typing import Any, Dict, Tuple
 
-from flask import Blueprint, Response, current_app, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 
 from app.db import db
 from app.game import games
-from app.models import Player, PlayerState, Session, SessionState
+from app.models import Player, Session
 from app.validators import AdminValidators
 from game.engine import GameEngine
 
 admin_routes = Blueprint("admin_routes", __name__)
 
 
-@admin_routes.route("/create_session", methods=["POST"])
-def create_session() -> Tuple[Response, int]:
+@admin_routes.route("/create_game", methods=["POST"])
+def create_game() -> Tuple[Response, int]:
     data: Dict[str, Any] = request.get_json() or {}
     validators = AdminValidators(data)
-    validators.require_fields(["admin_key"]).validate_admin_key().check_errors()
+
+    (
+        validators.require_fields(["admin_key", "epochs", "timestep"])
+        .validate_admin_key()
+        .validate_epochs()
+        .validate_timestep()
+        .check_errors()
+    )
 
     session: Session = Session()
+    games[session.key] = GameEngine(data["epochs"], data["timestep"])
     db.session.add(session)
     db.session.commit()
 
     response_data: Dict[str, str] = {
-        "message": "Session created. Share this key with players to join the session.",
-        "session_key": session.key,
+        "game_key": session.key,
     }
     return jsonify(response_data), 201
 
@@ -34,86 +41,32 @@ def start_game() -> Tuple[Response, int]:
     validators = AdminValidators(data)
 
     (
-        validators.require_fields(["admin_key", "session_key", "epochs", "timestep"])
+        validators.require_fields(["admin_key", "game_key"])
         .validate_admin_key()
-        .validate_session_key()
+        .validate_game_key()
         .validate_active_players()
-        .validate_epochs()
-        .validate_timestep()
         .check_errors()
     )
 
-    players = (
-        db.session.query(Player)
-        .filter_by(session_key=data["session_key"], state=PlayerState.CONNECTED)
-        .all()
-    )
+    players = db.session.query(Player).filter_by(game_key=data["game_key"]).all()
     player_keys = [player.key for player in players]
-    games[data["session_key"]] = GameEngine(
-        player_keys, data["epochs"], data["timestep"]
-    )
-    games[data["session_key"]].start()
-
-    db.session.query(Session).filter_by(key=data["session_key"]).update(
-        {"state": SessionState.PLAYING}
-    )
-    db.session.commit()
+    games[data["game_key"]].start(player_keys)
 
     return jsonify({"message": "The game has started"}), 200
 
 
-@admin_routes.route("/change_player_state", methods=["POST"])
-def change_player_state() -> Tuple[Response, int]:
+@admin_routes.route("/stop_game", methods=["POST"])
+def stop_game() -> Tuple[Response, int]:
     data: Dict[str, Any] = request.get_json() or {}
     validators = AdminValidators(data)
 
     (
-        validators.require_fields(["admin_key", "session_key", "player_name"])
+        validators.require_fields(["admin_key", "game_key"])
         .validate_admin_key()
-        .validate_session_key()
-        .validate_player_name()
-        .validate_new_state()
+        .validate_game_key()
         .check_errors()
     )
 
-    session_key = data["session_key"]
-    player_name = data["player_name"]
-    new_state = data["new_state"]
+    games[data["game_key"]].stop()
 
-    player = cast(
-        Player,
-        db.session.query(Player)
-        .filter_by(name=player_name, session_key=session_key)
-        .first(),
-    )
-    old_state = player.state
-    new_state = PlayerState(new_state)
-    player.state = new_state
-    db.session.commit()
-
-    return jsonify(
-        {
-            "message": f"Player '{player_name}' state changed from {old_state} to '{new_state}' in session '{session_key}'"
-        }
-    ), 200
-
-
-@admin_routes.route("/get_session_status", methods=["POST"])
-def get_session_status() -> Tuple[Response, int]:
-    """
-    Returns the status of a session.
-    """
-    data: Dict[str, Any] = request.get_json() or {}
-    session_key: str = data.get("session_key", "")
-
-    validators = LobbyValidators(data)
-
-    (
-        validators.require_fields(["session_key", "player_key"])
-        .validate_player_key()
-        .validate_session_key()
-        .check_errors()
-    )
-
-    session = cast(Session, Session.query.filter_by(key=session_key).first())
-    return jsonify({"status": session.state.value}), 200
+    return jsonify({"message": "The game has stopped"}), 200

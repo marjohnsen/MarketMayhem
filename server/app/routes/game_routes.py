@@ -2,12 +2,63 @@ from typing import Any, Dict, Tuple
 
 import numpy as np
 from flask import Blueprint, Response, jsonify, request
-from app.models import Player
 
+from app.db import db
 from app.game import games
+from app.models import Player
 from app.validators import GameValidators
 
 game_routes = Blueprint("game_routes", __name__)
+
+
+@game_routes.route("/join_game", methods=["POST"])
+def join_game() -> Tuple[Response, int]:
+    data: Dict[str, Any] = request.get_json() or {}
+    validators = GameValidators(data)
+
+    (
+        validators.require_fields(["game_key", "player_name"])
+        .validate_game_key()
+        .validate_new_player_name()
+        .validate_state("waiting")
+        .check_errors()
+    )
+
+    new_player = Player(name=data["player_name"], game_key=data["game_key"])  # type: ignore
+    db.session.add(new_player)
+    db.session.commit()
+
+    return jsonify(
+        {
+            "message": f"Player {data['player_name']} has successfully joined the game.",
+            "player_key": new_player.key,
+        }
+    ), 200
+
+
+@game_routes.route("/game_status", methods=["POST"])
+def game_status() -> Tuple[Response, int]:
+    data: Dict[str, Any] = request.get_json() or {}
+
+    validators = GameValidators(data)
+
+    if data["admin_key"]:
+        (
+            validators.require_fields(["game_key", "admin_key"])
+            .validate_game_key()
+            .validate_admin_key()
+            .check_errors()
+        )
+
+    else:
+        (
+            validators.require_fields(["game_key", "player_key"])
+            .validate_game_key()
+            .validate_player_key()
+            .check_errors()
+        )
+
+    return jsonify({"status": games[data["game_key"]].status}), 200
 
 
 @game_routes.route("/get_latest_price", methods=["POST"])
@@ -16,13 +67,13 @@ def get_latest_price() -> Tuple[Response, int]:
     validators = GameValidators(data)
 
     (
-        validators.require_fields(["session_key", "player_key"])
-        .validate_session_key()
+        validators.require_fields(["game_key", "player_key"])
+        .validate_game_key()
         .validate_player_key()
         .check_errors()
     )
 
-    epoch, latest_price = games[data["session_key"]].exchange.get_latest_price()
+    epoch, latest_price = games[data["game_key"]].exchange.get_latest_price()
 
     response: Dict[str, int | float] = {"epoch": epoch, "price": latest_price}
     return jsonify(response), 201
@@ -34,15 +85,14 @@ def trade() -> Tuple[Response, int]:
     validators = GameValidators(data)
 
     (
-        validators.require_fields(["session_key", "player_key", "position"])
-        .validate_session_key()
+        validators.require_fields(["game_key", "player_key", "position"])
+        .validate_game_key()
         .validate_player_key()
-        .validate_game_running()
         .validate_position()
         .check_errors()
     )
 
-    epoch, leverage = games[data["session_key"]].exchange.trade(
+    epoch, leverage = games[data["game_key"]].exchange.trade(
         data["player_key"], int(data["position"])
     )
 
@@ -53,11 +103,9 @@ def trade() -> Tuple[Response, int]:
 def get_scoreboard() -> Tuple[Response, int]:
     data: Dict[str, Any] = request.get_json() or {}
     validators = GameValidators(data)
-    validators.require_fields(
-        ["session_key"]
-    ).validate_session_key().validate_game_stopped().check_errors()
+    validators.require_fields(["game_key"]).validate_game_key().check_errors()
 
-    engine = games[data["session_key"]]
+    engine = games[data["game_key"]]
     accounts = engine.exchange.accounts
     market = engine.exchange.market
     log_returns = market.log_return
@@ -70,10 +118,10 @@ def get_scoreboard() -> Tuple[Response, int]:
         idx = np.maximum.accumulate(np.where(mask, np.arange(len(arr)), 0))
         return arr[idx]
 
-    scoreboard = {}
+    scoreboard: Dict[str, Any] = {}
 
     for player_key, account in accounts.items():
-        player = Player.query.filter_by(session_key=data["session_key"]).first()
+        player = Player.query.filter_by(game_key=data["game_key"]).first()
         player_name = player.name  # type: ignore
         position_changes = np.array(account["positions"])
         positions = forward_fill(np.cumsum(position_changes))

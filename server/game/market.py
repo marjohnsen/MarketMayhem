@@ -30,7 +30,6 @@ class Market:
         self.log_return[self.epoch] = 0.0
 
     def reference_players(self, accounts: Dict[str, Dict[str, Any]]) -> None:
-        """Required method to reference the players from the game engine."""
         self.accounts = accounts
 
     def update_state(self) -> float:
@@ -76,35 +75,3 @@ class Market:
         self.log_return[self.epoch] = log_return
 
         return self.log_return[self.epoch]
-
-
-if __name__ == "__main__":
-    from matplotlib import pyplot as plt
-
-    market = Market(100)
-    players = {"player1": {"positions": np.zeros(102), "leverage": 0}}
-    market.reference_players(players)
-
-    while market.epoch < market.epochs:
-        market.update_state()
-
-    arrays = [
-        (market.trading_volume, "Trading Volume"),
-        (market.order_flow, "Order Flow"),
-        (market.jitter, "Jitter"),
-        (market.surge, "Surge"),
-        (market.dispersion, "Dispersion"),
-        (market.sentiment, "Sentiment"),
-        (market.log_return, "Log Return"),
-        (100 * np.exp(np.cumsum(market.log_return)), "Price"),
-    ]
-
-    fig, axs = plt.subplots(nrows=len(arrays), ncols=1, sharex=True, figsize=(10, 15))
-    for ax, (arr, label) in zip(axs, arrays):
-        ax.plot(arr, label=label)
-        ax.set_ylabel(label)
-        ax.legend(loc="upper right")
-
-    axs[-1].set_xlabel("Epoch")
-    plt.tight_layout()
-    plt.show()
