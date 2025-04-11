@@ -1,7 +1,10 @@
-class SingletonMeta(type):
-    _instances = {}
+from typing import Any, Dict, Type
 
-    def __call__(cls, *args, **kwargs):
+
+class SingletonMeta(type):
+    _instances: Dict[Type, Any] = {}
+
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         if cls in cls._instances:
             if args or kwargs:
                 instance = super().__call__(*args, **kwargs)
