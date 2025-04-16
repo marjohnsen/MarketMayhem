@@ -126,15 +126,13 @@ if __name__ == "__main__":
         information=["Welcome to the App!", "Use arrow keys to navigate."],
     )
     def main_menu(stdscr, choices, current_idx, header, offset):
-        # Example handler for selection
         selected_option = choices[current_idx]
         if selected_option == "Exit":
-            return -2  # signal to exit
-        # Just display the selection for demo purposes
+            return -2
         stdscr.clear()
         stdscr.addstr(0, 0, f"You selected: {selected_option}")
         stdscr.refresh()
         stdscr.getch()
-        return -1  # return to menu
+        return -1
 
     curses.wrapper(main_menu)
