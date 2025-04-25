@@ -26,10 +26,9 @@ def create_game_menu(stdscr):
     stdscr.refresh()
 
     try:
-        AdminAPI(address, admin_key)
-        response = AdminAPI().create_game(int(epochs), int(timestep))
-        if not (game_key := response.get("game_key")):
-            raise ValueError(f"Response: {response}")
+        api = AdminAPI(address, admin_key)
+        response = api.create_game(int(epochs), int(timestep))
+        game_key = response.get("game_key")
     except Exception as e:
         stdscr.clear()
         AdminAPI.delete()
@@ -37,7 +36,6 @@ def create_game_menu(stdscr):
         stdscr.refresh()
         stdscr.getch()
         return -2
-
     stdscr.clear()
     draw_centered_text(
         stdscr,

@@ -1,6 +1,6 @@
 import curses
 from functools import wraps
-from typing import List, Callable, Any, Union
+from typing import List, Callable, Any
 
 
 def load_header(path: str) -> List[str]:
@@ -76,7 +76,7 @@ def menu_interface(header_path: str, choices: List[str] = None) -> Callable:
 
             information = kwargs.pop("information", [])
 
-            def draw_screen() -> None:
+            def draw_screen() -> Any:
                 stdscr.clear()
                 draw_header(stdscr, header)
 
@@ -110,6 +110,8 @@ def menu_interface(header_path: str, choices: List[str] = None) -> Callable:
                     break
                 else:
                     current_idx = nav
+
+            return -2
 
         return wrapped
 

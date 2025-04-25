@@ -1,7 +1,7 @@
 from typing import Any, Dict, Tuple
 
 import numpy as np
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, jsonify, make_response, request
 
 from app.db import db
 from app.game import games
@@ -33,15 +33,11 @@ def join_game() -> Tuple[Response, int]:
             "message": f"Player {data['player_name']} has successfully joined the game.",
             "player_key": new_player.key,
         }
-    ), 200
+    )
 
 
 @game_routes.route("/game_status", methods=["POST"])
 def game_status() -> Tuple[Response, int]:
-    import os, logging, json
-
-    logging.warning("PID=%s games_keys=%s", os.getpid(), json.dumps(list(games)))
-
     data: Dict[str, Any] = request.get_json() or {}
 
     validators = GameValidators(data)
@@ -62,7 +58,7 @@ def game_status() -> Tuple[Response, int]:
             .check_errors()
         )
 
-    return jsonify({"status": games[data["game_key"]].status}), 200
+    return jsonify({"status": games[data["game_key"]].status})
 
 
 @game_routes.route("/get_latest_price", methods=["POST"])
@@ -100,7 +96,7 @@ def trade() -> Tuple[Response, int]:
         data["player_key"], int(data["position"])
     )
 
-    return jsonify({"epoch": epoch, "leverage": leverage}), 201
+    return make_response(jsonify({"epoch": epoch, "leverage": leverage}), 201)
 
 
 @game_routes.route("/get_scoreboard", methods=["POST"])
@@ -140,4 +136,4 @@ def get_scoreboard() -> Tuple[Response, int]:
 
     scoreboard["price"] = {"series": price_series.tolist(), "start_price": start_price}
 
-    return jsonify(scoreboard), 200
+    return jsonify(scoreboard)

@@ -19,14 +19,18 @@ class BaseValidators:
     def check_errors(self) -> Self:
         """Return all collected errors if any exist."""
         if self.errors:
-            abort(jsonify({"error": "Validation failed", "details": self.errors}), 400)
+            response = jsonify({"error": "Validation failed", "details": self.errors})
+            response.status_code = 400
+            abort(response)
         return self
 
     def require_fields(self, required_fields: list) -> Self:
         """Ensure all required fields are present and not empty."""
         missing = [field for field in required_fields if not self.data.get(field)]
         if missing:
-            abort(jsonify({"Missing fields": f"{', '.join(missing)}"}), 400)
+            response = jsonify({"Missing fields": f"{', '.join(missing)}"})
+            response.status_code = 400
+            abort(response)
         return self
 
     def validate_admin_key(self) -> Self:

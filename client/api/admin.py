@@ -16,7 +16,12 @@ class AdminAPI(metaclass=SingletonMeta):
             "epochs": epochs,
             "timestep": timestep,
         }
+
         response = requests.post(api_url, json=payload)
+
+        if response.status_code >= 400:
+            raise requests.HTTPError(f"HTTP {response.status_code}: {response.text}")
+
         self.game_key = response.json().get("game_key")
         return response.json()
 
@@ -27,6 +32,10 @@ class AdminAPI(metaclass=SingletonMeta):
             "game_key": self.game_key,
         }
         response = requests.post(api_url, json=payload)
+
+        if response.status_code >= 400:
+            raise requests.HTTPError(f"HTTP {response.status_code}: {response.text}")
+
         return response.json()
 
     def stop_game(self) -> Dict[str, Any]:
@@ -36,6 +45,10 @@ class AdminAPI(metaclass=SingletonMeta):
             "game_key": self.game_key,
         }
         response = requests.post(api_url, json=payload)
+
+        if response.status_code >= 400:
+            raise requests.HTTPError(f"HTTP {response.status_code}: {response.text}")
+
         return response.json()
 
     def game_status(self) -> Dict[str, Any]:
@@ -45,6 +58,10 @@ class AdminAPI(metaclass=SingletonMeta):
             "admin_key": self.admin_key,
         }
         response = requests.post(api_url, json=payload)
+
+        if response.status_code >= 400:
+            raise requests.HTTPError(f"HTTP {response.status_code}: {response.text}")
+
         return response.json()
 
 
