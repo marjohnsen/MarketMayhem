@@ -14,3 +14,6 @@ class SingletonMeta(type):
             cls._instances[cls] = instance
 
         return cls._instances[cls]
+
+    def delete(cls) -> None:
+        cls._instances.pop(cls, None)

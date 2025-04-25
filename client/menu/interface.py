@@ -1,6 +1,6 @@
 import curses
 from functools import wraps
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Union
 
 
 def load_header(path: str) -> List[str]:
@@ -63,76 +63,54 @@ def init_colors() -> None:
     curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
 
 
-def menu_interface(
-    header_path: str, information: List[str] = [], choices: List[str] = []
-) -> Callable:
+def menu_interface(header_path: str, choices: List[str] = None) -> Callable:
+    choices = choices or []
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapped(stdscr: curses.window, *args: Any, **kwargs: Any) -> None:
             init_colors()
             header = load_header(header_path)
-            offset = len(header) + len(information) + 2
             curses.curs_set(0)
             current_idx = 0
+
+            information = kwargs.pop("information", [])
 
             def draw_screen() -> None:
                 stdscr.clear()
                 draw_header(stdscr, header)
 
-                stdscr.addstr(len(header) + len(information), 0, "")
-
                 for i, line in enumerate(information):
                     draw_centered_text(stdscr, line, len(header) + 2 + i)
-
-                stdscr.addstr(len(header) + len(information), 0, "")
-
+                offset = len(header) + max(1, len(information)) + 2
                 draw_menu_list(stdscr, choices, current_idx, offset)
-
                 stdscr.refresh()
 
             while True:
                 draw_screen()
-                idx = get_navigation(stdscr, len(choices), current_idx)
+                nav = get_navigation(stdscr, len(choices), current_idx)
 
-                if idx == -1:
+                if nav == -1:
                     if (
                         func(
                             stdscr,
                             choices,
+                            information,
                             current_idx,
                             header,
-                            offset,
+                            len(header) + len(information) + 2,
                             *args,
                             **kwargs,
                         )
                         == -2
                     ):
                         break
-                elif idx == -2:
+                    draw_screen()
+                elif nav == -2:
                     break
                 else:
-                    current_idx = idx
+                    current_idx = nav
 
         return wrapped
 
     return decorator
-
-
-if __name__ == "__main__":
-
-    @menu_interface(
-        "header.txt",
-        choices=["Start", "Settings", "Exit"],
-        information=["Welcome to the App!", "Use arrow keys to navigate."],
-    )
-    def main_menu(stdscr, choices, current_idx, header, offset):
-        selected_option = choices[current_idx]
-        if selected_option == "Exit":
-            return -2
-        stdscr.clear()
-        stdscr.addstr(0, 0, f"You selected: {selected_option}")
-        stdscr.refresh()
-        stdscr.getch()
-        return -1
-
-    curses.wrapper(main_menu)

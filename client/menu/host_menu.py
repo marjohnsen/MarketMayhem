@@ -8,37 +8,43 @@ from menu.create_game_menu import create_game_menu
 def host_menu(stdscr):
     admin_api = SingletonMeta._instances.get(AdminAPI)
     if admin_api:
-        result = connected_menu(stdscr)  # type: ignore
+        connected_menu(stdscr, information=[])  # type: ignore
     else:
-        result = disconnected_menu(stdscr)  # type: ignore
-    if result == -2:
-        return -2
+        disconnected_menu(stdscr)  # type: ignore
 
 
-@menu_interface("menu/ascii_art/admin_menu.txt", choices=["Create Game", "Go Back"])
-def disconnected_menu(stdscr, choices, current_idx, header, offset):
-    selection = choices[current_idx]
-    if selection == "Create Game":
-        create_game_menu(stdscr)  # type: ignore
-        return -2
-    elif selection == "Go Back":
-        stdscr.refresh()
+@menu_interface(
+    "menu/ascii_art/admin_menu.txt",
+    choices=["Create New Game", "Start Game", "Stop Game", "Terminate"],
+)
+def connected_menu(stdscr, choices, information, current_idx, *_):
+    if choices[current_idx] == "Create New Game":
+        AdminAPI.delete()
+        create_game_menu(stdscr)
+        connected_menu(stdscr, information=[])  # type: ignore
+    elif choices[current_idx] == "Start Game":
+        AdminAPI().start_game()
+    elif choices[current_idx] == "Stop Game":
+        AdminAPI().stop_game()
+    elif choices[current_idx] == "Terminate":
+        AdminAPI.delete()
         return -2
 
 
 @menu_interface(
     "menu/ascii_art/admin_menu.txt",
-    choices=["Create Game", "Start Game", "Stop Game", "Go Back"],
+    choices=["Create Game", "Go Back"],
 )
-def connected_menu(stdscr, choices, current_idx, header, offset):
-    selection = choices[current_idx]
-    if selection == "Create Game":
-        create_game_menu(stdscr)  # type: ignore
-    elif selection == "Start Game":
-        pass
-    elif selection == "Stop Game":
-        pass
-    elif selection == "Go Back":
+def disconnected_menu(stdscr, choices, information, current_idx, *_):
+    if choices[current_idx] == "Create Game":
+        create_game_menu(stdscr)
+        info = [
+            f"Game Key: {AdminAPI().game_key}",
+            f"Address:  {AdminAPI().server_address}",
+            f"Status:   {AdminAPI().game_status().get('status')}",
+        ]
+        connected_menu(stdscr, information=info)  # type: ignore
+    elif choices[current_idx] == "Go Back":
         return -2
 
 

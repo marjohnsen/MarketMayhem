@@ -26,27 +26,35 @@ def create_game_menu(stdscr):
     stdscr.refresh()
 
     try:
-        api = AdminAPI(address, admin_key)
-        game_key = api.create_game(epochs, timestep)
-        if not game_key:
-            raise ValueError("Game key not found.")
+        AdminAPI(address, admin_key)
+        response = AdminAPI().create_game(int(epochs), int(timestep))
+        if not (game_key := response.get("game_key")):
+            raise ValueError(f"Response: {response}")
     except Exception as e:
         stdscr.clear()
-        draw_centered_text(stdscr, f"Error: {str(e)}", offset + 6, center)
+        AdminAPI.delete()
+        stdscr.addstr(0, 0, f"Error: {str(e)}")
         stdscr.refresh()
         stdscr.getch()
         return -2
 
+    stdscr.clear()
     draw_centered_text(
         stdscr,
         "Share the server address and game key with the players you want to join:",
-        offset + 6,
+        offset + 3,
         2,
     )
     draw_centered_text(
         stdscr,
-        f"{game_key}",
-        offset + 7,
+        f"Address: {address}",
+        offset + 5,
+        1,
+    )
+    draw_centered_text(
+        stdscr,
+        f"Game Key: {game_key}",
+        offset + 6,
         1,
     )
     stdscr.getch()

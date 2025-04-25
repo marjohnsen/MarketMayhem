@@ -17,7 +17,6 @@ class AdminAPI(metaclass=SingletonMeta):
             "timestep": timestep,
         }
         response = requests.post(api_url, json=payload)
-        response.raise_for_status()
         self.game_key = response.json().get("game_key")
         return response.json()
 
@@ -28,7 +27,6 @@ class AdminAPI(metaclass=SingletonMeta):
             "game_key": self.game_key,
         }
         response = requests.post(api_url, json=payload)
-        response.raise_for_status()
         return response.json()
 
     def stop_game(self) -> Dict[str, Any]:
@@ -38,7 +36,6 @@ class AdminAPI(metaclass=SingletonMeta):
             "game_key": self.game_key,
         }
         response = requests.post(api_url, json=payload)
-        response.raise_for_status()
         return response.json()
 
     def game_status(self) -> Dict[str, Any]:
@@ -48,5 +45,12 @@ class AdminAPI(metaclass=SingletonMeta):
             "admin_key": self.admin_key,
         }
         response = requests.post(api_url, json=payload)
-        response.raise_for_status()
         return response.json()
+
+
+if __name__ == "__main__":
+    api = AdminAPI("localhost:5000", "123")
+    key = api.create_game(100, 1)
+    print(f"Game Key: {key}")
+    status = api.game_status()
+    print(f"Game Status: {status}")
