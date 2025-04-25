@@ -39,7 +39,7 @@ class BaseValidators:
         """Ensure the session exists."""
         game_key = self.data.get("game_key")
         if not db.session.query(Lobby).filter_by(key=game_key).first():
-            self.errors.append(f"Session '{game_key}' not found.")
+            self.errors.append(f"Game '{game_key}' not found.")
         return self
 
     def validate_player_key(self) -> Self:
