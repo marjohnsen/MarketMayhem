@@ -38,6 +38,10 @@ def join_game() -> Tuple[Response, int]:
 
 @game_routes.route("/game_status", methods=["POST"])
 def game_status() -> Tuple[Response, int]:
+    import os, logging, json
+
+    logging.warning("PID=%s games_keys=%s", os.getpid(), json.dumps(list(games)))
+
     data: Dict[str, Any] = request.get_json() or {}
 
     validators = GameValidators(data)

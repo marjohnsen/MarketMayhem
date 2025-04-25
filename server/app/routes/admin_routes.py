@@ -25,9 +25,10 @@ def create_game() -> Tuple[Response, int]:
     )
 
     lobby: Lobby = Lobby()
-    games[lobby.key] = GameEngine(data["epochs"], data["timestep"])
     db.session.add(lobby)
     db.session.commit()
+
+    games[lobby.key] = GameEngine(data["epochs"], data["timestep"])
 
     response_data: Dict[str, str] = {
         "game_key": lobby.key,
