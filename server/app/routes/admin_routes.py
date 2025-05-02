@@ -1,6 +1,6 @@
 from typing import Any, Dict, Tuple
 
-from flask import Blueprint, Response, jsonify, make_response, request
+from flask import Blueprint, Response, jsonify, request
 
 from app.db import db
 from app.game import games
@@ -12,7 +12,7 @@ admin_routes = Blueprint("admin_routes", __name__)
 
 
 @admin_routes.route("/create_game", methods=["POST"])
-def create_game() -> Tuple[Response, int]:
+def create_game() -> Response:
     data: Dict[str, Any] = request.get_json() or {}
     validators = AdminValidators(data)
 
@@ -33,11 +33,11 @@ def create_game() -> Tuple[Response, int]:
     response_data: Dict[str, str] = {
         "game_key": lobby.key,
     }
-    return make_response(jsonify(response_data), 201)
+    return jsonify(response_data)
 
 
 @admin_routes.route("/start_game", methods=["POST"])
-def start_game() -> Tuple[Response, int]:
+def start_game() -> Response:
     data: Dict[str, Any] = request.get_json() or {}
     validators = AdminValidators(data)
 
@@ -57,7 +57,7 @@ def start_game() -> Tuple[Response, int]:
 
 
 @admin_routes.route("/stop_game", methods=["POST"])
-def stop_game() -> Tuple[Response, int]:
+def stop_game() -> Response:
     data: Dict[str, Any] = request.get_json() or {}
     validators = AdminValidators(data)
 

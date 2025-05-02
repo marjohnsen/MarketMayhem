@@ -1,7 +1,7 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
 import numpy as np
-from flask import Blueprint, Response, jsonify, make_response, request
+from flask import Blueprint, Response, jsonify, request
 
 from app.db import db
 from app.game import games
@@ -12,7 +12,7 @@ game_routes = Blueprint("game_routes", __name__)
 
 
 @game_routes.route("/join_game", methods=["POST"])
-def join_game() -> Tuple[Response, int]:
+def join_game() -> Response:
     data: Dict[str, Any] = request.get_json() or {}
     validators = GameValidators(data)
 
@@ -37,7 +37,7 @@ def join_game() -> Tuple[Response, int]:
 
 
 @game_routes.route("/game_status", methods=["POST"])
-def game_status() -> Tuple[Response, int]:
+def game_status() -> Response:
     data: Dict[str, Any] = request.get_json() or {}
 
     validators = GameValidators(data)
@@ -61,8 +61,36 @@ def game_status() -> Tuple[Response, int]:
     return jsonify({"status": games[data["game_key"]].status})
 
 
+@game_routes.route("/list_players", methods=["POST"])
+def list_players() -> Response:
+    data: Dict[str, Any] = request.get_json() or {}
+
+    validators = GameValidators(data)
+
+    if data["admin_key"]:
+        (
+            validators.require_fields(["game_key", "admin_key"])
+            .validate_game_key()
+            .validate_admin_key()
+            .check_errors()
+        )
+
+    else:
+        (
+            validators.require_fields(["game_key", "player_key"])
+            .validate_game_key()
+            .validate_player_key()
+            .check_errors()
+        )
+
+    players = db.session.query(Player).filter_by(game_key=data["game_key"]).all()
+    player_names = [player.name for player in players]
+
+    return jsonify({"players": player_names})
+
+
 @game_routes.route("/get_latest_price", methods=["POST"])
-def get_latest_price() -> Tuple[Response, int]:
+def get_latest_price() -> Response:
     data: Dict[str, Any] = request.get_json() or {}
     validators = GameValidators(data)
 
@@ -76,11 +104,11 @@ def get_latest_price() -> Tuple[Response, int]:
     epoch, latest_price = games[data["game_key"]].exchange.get_latest_price()
 
     response: Dict[str, int | float] = {"epoch": epoch, "price": latest_price}
-    return jsonify(response), 201
+    return jsonify(response)
 
 
 @game_routes.route("/trade", methods=["POST"])
-def trade() -> Tuple[Response, int]:
+def trade() -> Response:
     data: Dict[str, Any] = request.get_json() or {}
     validators = GameValidators(data)
 
@@ -96,11 +124,11 @@ def trade() -> Tuple[Response, int]:
         data["player_key"], int(data["position"])
     )
 
-    return make_response(jsonify({"epoch": epoch, "leverage": leverage}), 201)
+    return jsonify({"epoch": epoch, "leverage": leverage})
 
 
 @game_routes.route("/get_scoreboard", methods=["POST"])
-def get_scoreboard() -> Tuple[Response, int]:
+def get_scoreboard() -> Response:
     data: Dict[str, Any] = request.get_json() or {}
     validators = GameValidators(data)
     validators.require_fields(["game_key"]).validate_game_key().check_errors()
