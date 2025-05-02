@@ -31,6 +31,7 @@ class AdminAPI(metaclass=SingletonMeta):
             "admin_key": self.admin_key,
             "game_key": self.game_key,
         }
+
         response = requests.post(api_url, json=payload)
 
         if response.status_code >= 400:
@@ -53,6 +54,19 @@ class AdminAPI(metaclass=SingletonMeta):
 
     def game_status(self) -> Dict[str, Any]:
         api_url = f"http://{self.server_address}/game_status"
+        payload = {
+            "game_key": self.game_key,
+            "admin_key": self.admin_key,
+        }
+        response = requests.post(api_url, json=payload)
+
+        if response.status_code >= 400:
+            raise requests.HTTPError(f"HTTP {response.status_code}: {response.text}")
+
+        return response.json()
+
+    def list_players(self) -> Dict[str, Any]:
+        api_url = f"http://{self.server_address}/list_players"
         payload = {
             "game_key": self.game_key,
             "admin_key": self.admin_key,

@@ -6,7 +6,7 @@ choices = ["Join Game", "Host Menu", "Exit"]
 
 
 @menu_interface("menu/ascii_art/marketmayhem.txt", choices)
-def main_menu(stdscr, choices, information, current_idx, header, offset):
+def main_menu(stdscr, choices, information, current_idx, header):
     selection = choices[current_idx]
     if selection == "Join Game":
         pass

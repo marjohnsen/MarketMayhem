@@ -9,22 +9,39 @@ from menu.interface import menu_interface
 def host_menu(stdscr):
     while True:
         if api := SingletonMeta._instances.get(AdminAPI):
-            info = [
-                f"Game Key: {api.game_key}",
-                f"Address:  {api.server_address}",
-                f"Status:   {api.game_status().get('status')}",
-            ]
-            result = connected_menu(stdscr, information=info)  # type: ignore
+            result = connected_menu(  # type: ignore
+                stdscr,
+                information=lambda: [
+                    f"  Status: {api.game_status().get('status')}",
+                    " ",
+                    f"Game Key: {api.game_key}",
+                    f" Address: {api.server_address}",
+                    " ",
+                    f" Players:",
+                ]
+                + [
+                    f"{' ' * 9}-{name}"
+                    for name in api.list_players().get("players", [])
+                ],
+            )
         else:
             result = disconnected_menu(stdscr)  # type: ignore
-
+            if result == 1:
+                continue
         if result == -2:
             break
 
 
 @menu_interface(
     "menu/ascii_art/admin_menu.txt",
-    choices=["Create New Game", "Start Game", "Stop Game", "Terminate"],
+    choices=[
+        "Create New Game",
+        "Update Status",
+        "Start Game",
+        "End Game",
+        "Abort",
+    ],
+    refresh_ms=1000,
 )
 def connected_menu(stdscr, choices, information, current_idx, *_):
     api = SingletonMeta._instances[AdminAPI]
@@ -32,15 +49,31 @@ def connected_menu(stdscr, choices, information, current_idx, *_):
         AdminAPI.delete()
         create_game_menu(stdscr)
         return 0
-    elif choices[current_idx] == "Start Game":
-        api.start_game()
+    if choices[current_idx] == "Update Status":
+        return 1
+    if choices[current_idx] == "Start Game":
+        try:
+            api.start_game()
+        except Exception as e:
+            stdscr.clear()
+            stdscr.addstr(0, 0, f"Error: {str(e)}")
+            stdscr.refresh()
+            stdscr.getch()
+            return 1
         return 0
-    elif choices[current_idx] == "Stop Game":
-        api.stop_game()
+    if choices[current_idx] == "End Game":
+        try:
+            api.stop_game()
+        except Exception as e:
+            stdscr.clear()
+            stdscr.addstr(0, 0, f"Error: {str(e)}")
+            stdscr.refresh()
+            stdscr.getch()
+            return 1
         return 0
-    elif choices[current_idx] == "Terminate":
+    if choices[current_idx] == "Abort":
         AdminAPI.delete()
-        return -2
+        return 1
 
 
 @menu_interface(
@@ -51,8 +84,8 @@ def disconnected_menu(stdscr, choices, information, current_idx, *_):
     if choices[current_idx] == "Create Game":
         AdminAPI.delete()
         create_game_menu(stdscr)
-        return 0
-    elif choices[current_idx] == "Go Back":
+        return 1
+    if choices[current_idx] == "Go Back":
         return -2
 
 

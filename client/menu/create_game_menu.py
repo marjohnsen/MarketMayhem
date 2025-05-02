@@ -1,6 +1,6 @@
 import curses
 from api.admin import AdminAPI
-from menu.interface import draw_centered_text, get_input, load_header, init_colors
+from menu.interface import draw_text, get_input, load_header, init_colors
 
 
 def create_game_menu(stdscr):
@@ -13,7 +13,7 @@ def create_game_menu(stdscr):
     center = stdscr.getmaxyx()[1] // 2 - max(len(line) for line in header) // 2
 
     for i, line in enumerate(header):
-        draw_centered_text(stdscr, line, i, 2)
+        draw_text(stdscr, line, i, 2)
 
     stdscr.refresh()
 
@@ -36,20 +36,22 @@ def create_game_menu(stdscr):
         stdscr.refresh()
         stdscr.getch()
         return -2
+
     stdscr.clear()
-    draw_centered_text(
+
+    draw_text(
         stdscr,
         "Share the server address and game key with the players you want to join:",
         offset + 3,
         2,
     )
-    draw_centered_text(
+    draw_text(
         stdscr,
         f"Address: {address}",
         offset + 5,
         1,
     )
-    draw_centered_text(
+    draw_text(
         stdscr,
         f"Game Key: {game_key}",
         offset + 6,
