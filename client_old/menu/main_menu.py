@@ -17,4 +17,4 @@ def main_menu(stdscr, choices, information, current_idx, header):
 
 
 if __name__ == "__main__":
-    curses.wrapper(main_menu)  # type: ignore
+    curses.wrapper(main_menu)
