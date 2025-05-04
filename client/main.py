@@ -11,18 +11,20 @@ def main(stdscr):
     stdscr.timeout(100)
     init_pairs()
 
-    canvas = Canvas(stdscr)
+    canvas = Canvas(stdscr, h=10, w=40, y=1, x=1)
     header = Header("ui/ascii_art/marketmayhem.txt")
 
     while True:
         stdscr.erase()
-        # stdscr.border()
-        header.draw(stdscr, y=0, pair=Pairs.STANDARD)
 
+        stdscr.border()
+        header.draw(stdscr, y=0, pair=Pairs.STANDARD)
+        stdscr.noutrefresh()
+
+        canvas.clear()
         canvas.win.border()
 
         canvas.flush()
-        stdscr.noutrefresh()
         curses.doupdate()
 
 
