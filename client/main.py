@@ -44,7 +44,7 @@ def main(stdscr):
         canvas.draw_list(choices, selected=navigate.pos, pair=Pairs.STANDARD)
         canvas.noutrefresh()
 
-        # Make decisions based on navigation
+        # Route action
         if action == Navigation.SELECT:
             match choices[navigate.pos]:
                 case "Exit":

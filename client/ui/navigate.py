@@ -1,4 +1,3 @@
-# ui/navigation.py
 import curses
 from typing import Optional
 
