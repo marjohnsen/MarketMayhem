@@ -1,21 +1,24 @@
-from pathlib import Path
-from dataclasses import dataclass
 import curses
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Sequence
+
+from ui.palette import Pairs
 
 
 @dataclass(slots=True)
 class Header:
-    lines: list[str]
+    lines: Sequence[str]
 
     @classmethod
-    def from_file(cls, path):
-        txt = Path(path).expanduser().read_text(encoding="utf-8").splitlines()
-        return cls(txt or [""])
+    def from_file(cls, path: str | Path) -> "Header":
+        text = Path(path).expanduser().read_text(encoding="utf-8").splitlines() or [""]
+        return cls(text)
 
-    def draw(self, win, y, pair):
-        _, w = win.getmaxyx()
+    def draw(self, win: curses.window, y: int = 1, pair: Pairs = Pairs.BASE) -> int:
+        _, width = win.getmaxyx()
         attr = curses.color_pair(pair)
-        for i, ln in enumerate(self.lines):
-            x = max(0, (w - len(ln)) // 2)
-            win.addnstr(y + i, x, ln, w - x - 1, attr)
+        for i, line in enumerate(self.lines):
+            x = max(0, (width - len(line)) // 2)
+            win.addnstr(y + i, x, line, width - x - 1, attr)
         return len(self.lines) + 1
