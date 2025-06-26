@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class Menu(ABC):
+class MenuInterface(ABC):
     @abstractmethod
     def draw(self, canvas): ...
 

@@ -1,4 +1,5 @@
 import curses
+from contextlib import contextmanager
 from typing import Any, Sequence
 
 from ui.palette import Pairs
@@ -26,18 +27,28 @@ class Canvas:
 
     rebuild = _build
 
-    def _draw(self, text: str, attr: int) -> None:
+    @contextmanager
+    def blocking(self):
+        self.win.nodelay(False)
+        self.win.timeout(-1)
+        try:
+            yield
+        finally:
+            self.win.nodelay(True)
+            self.win.timeout(10)
+
+    def _draw(self, text: str, pair: int = Pairs.BASE) -> None:
         h, w = self.win.getmaxyx()
         if self.cursor >= h - 1:
             return
-        x = max(0, (w - len(text)) // 2)
-        self.win.addnstr(self.cursor, x, text, w - x - 1, attr)
-        self.cursor += 1
 
-    def draw_header_lines(self, lines: Sequence[str]) -> None:
-        self.cursor = 1
-        self.draw_lines(lines, pair=Pairs.BASE)
-        self.offset = self.cursor
+        self.win.move(self.cursor, 0)
+        self.win.clrtoeol()
+
+        x = max(0, (w - len(text)) // 2)
+
+        self.win.addnstr(self.cursor, x, text, w - x - 1, pair)
+        self.cursor += 1
 
     def draw_lines(
         self, lines: Sequence[str], *, pair: int = Pairs.STATIC, pad: int = 1
@@ -46,6 +57,11 @@ class Canvas:
         for line in lines:
             self._draw(line, base)
         self.cursor += pad
+
+    def draw_header_lines(self, lines: Sequence[str]) -> None:
+        self.cursor = 1
+        self.draw_lines(lines, pair=Pairs.BASE)
+        self.offset = self.cursor
 
     def draw_menu(
         self,
@@ -61,9 +77,7 @@ class Canvas:
             self._draw(text, hi if i == idx else base)
         self.cursor += pad
 
-    def draw_input(self, prompt: str, *, pair: int = Pairs.BASE) -> str:
-        self.win.nodelay(False)
-
+    def draw_prompt(self, prompt: str, *, pair: int = Pairs.BASE) -> str:
         _, w = self.win.getmaxyx()
         attr = curses.color_pair(pair)
         x = max(0, (w - (len(prompt) + 1)) // 2)
@@ -77,8 +91,6 @@ class Canvas:
 
         text = raw.decode("utf-8", errors="ignore")
         self.cursor += 1
-
-        self.win.nodelay(True)
 
         return text
 

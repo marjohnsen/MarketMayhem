@@ -1,14 +1,13 @@
 from pathlib import Path
 from typing import Any, Optional
 
-from menus.menu import Menu
-from menus.host_menu import HostMenu
-
 from ui.canvas import Canvas
 from ui.navigate import Navigation
 
+from menus.menu_interface import MenuInterface
 
-class MainMenu(Menu):
+
+class MainMenu(MenuInterface):
     options: list[str]
     nav: Navigation
     header_lines: list[str]
@@ -29,12 +28,11 @@ class MainMenu(Menu):
         canvas.noutrefresh()
 
     def route(self, key: int) -> Optional[Any]:
-        action = self.nav(key)
-        if action == Navigation.SELECT:
+        if (action := self.nav(key)) == Navigation.SELECT:
             if self.nav.pos == 0:
                 return None  # TODO: implement Join Game
             elif self.nav.pos == 1:
-                return HostMenu()
-            else:
+                return "HostMenu"
+            elif self.nav.pos == 2:
                 return None
         return self
