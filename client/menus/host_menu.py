@@ -58,5 +58,5 @@ class HostMenu(MenuInterface):
                 if self.nav.pos == 0:
                     return "CreateGameMenu"
                 elif self.nav.pos == 1:
-                    return None  # TODO: Exit to main menu
-        return self
+                    return "MainMenu"
+        return "HostMenu"

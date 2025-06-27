@@ -8,8 +8,8 @@ from menus.menu_interface import MenuInterface
 
 
 class MainMenu(MenuInterface):
-    options: list[str]
     nav: Navigation
+    options: list[str]
     header_lines: list[str]
 
     def __init__(self) -> None:
@@ -28,11 +28,12 @@ class MainMenu(MenuInterface):
         canvas.noutrefresh()
 
     def route(self, key: int) -> Optional[Any]:
-        if (action := self.nav(key)) == Navigation.SELECT:
+        if self.nav(key) == Navigation.SELECT:
             if self.nav.pos == 0:
                 return None  # TODO: implement Join Game
             elif self.nav.pos == 1:
                 return "HostMenu"
             elif self.nav.pos == 2:
                 return None
-        return self
+        else:
+            return "MainMenu"

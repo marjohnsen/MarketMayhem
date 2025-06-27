@@ -25,12 +25,12 @@ class CreateGameMenu(MenuInterface):
         canvas.erase()
         canvas.draw_header_lines(self.header_lines)
 
-        with canvas.blocking():
-            address = canvas.draw_prompt("Enter server address: ")
-            admin_key = canvas.draw_prompt("Enter admin key: ")
-            epochs = canvas.draw_prompt("Enter number of epochs: ")
-            timestep = canvas.draw_prompt("Enter time between each epoch: ")
-            game_key = 123
+        # with canvas.blocking():
+        address = canvas.draw_prompt("Enter server address: ")
+        admin_key = canvas.draw_prompt("Enter admin key: ")
+        epochs = canvas.draw_prompt("Enter number of epochs: ")
+        timestep = canvas.draw_prompt("Enter time between each epoch: ")
+        game_key = 123
 
         try:
             api = AdminAPI(address, admin_key)
@@ -41,9 +41,9 @@ class CreateGameMenu(MenuInterface):
             canvas.clear()
             AdminAPI.delete()
             canvas.draw_lines([f"Error: {str(e)}"], pair=Pairs.WARNING)
-            with canvas.blocking():
-                canvas.getch()
-            return None
+            #        with canvas.blocking():
+            canvas.getch()
+            raise RuntimeError(f"{Navigation.BACK}")
 
         canvas.erase()
 
@@ -57,10 +57,10 @@ class CreateGameMenu(MenuInterface):
             pair=Pairs.STATIC,
         )
 
-        with canvas.blocking():
-            canvas.getch()
+        # with canvas.blocking():
+        canvas.getch()
 
         canvas.noutrefresh()
 
     def route(self, key: int) -> Optional[Any]:
-        return "MainMenu"
+        return "HostMenu"

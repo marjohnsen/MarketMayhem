@@ -15,8 +15,6 @@ class Canvas:
         self.stdscr = stdscr
         self.offset = 0
         self._build()
-        self.win.nodelay(True)
-        self.win.timeout(10)
 
     def _build(self) -> None:
         y_max, x_max = self.stdscr.getmaxyx()
@@ -28,14 +26,14 @@ class Canvas:
     rebuild = _build
 
     @contextmanager
-    def blocking(self):
-        self.win.nodelay(False)
-        self.win.timeout(-1)
+    def unblock(self):
+        self.win.nodelay(True)
+        self.win.timeout(10)
         try:
             yield
         finally:
-            self.win.nodelay(True)
-            self.win.timeout(10)
+            self.win.nodelay(False)
+            self.win.timeout(-1)
 
     def _draw(self, text: str, pair: int = Pairs.BASE) -> None:
         h, w = self.win.getmaxyx()
